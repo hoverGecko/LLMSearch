@@ -125,3 +125,25 @@ sam delete --stack-name llm-search
 See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
 
 Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+
+## Local environment variables
+Store the environment variables in [env.json](env.json) with the following format:
+```json
+{
+    "Parameters": {
+        "a": "abc",
+        "b": "abc"
+    }
+}
+```
+Then, in [template.yaml](template.yaml), 
+```yaml
+Globals:
+  Function:
+    Timeout: 3
+    Environment:
+      Variables:
+        a: !Ref a
+        b: !Ref b
+```
+The variable `a` can be accessed by `process.env.a`. This works by using the `--env-vars` option in SAM: `sam local start-api --env-vars env.json`.

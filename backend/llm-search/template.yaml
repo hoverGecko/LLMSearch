@@ -12,6 +12,10 @@ Globals:
     Environment:
       Variables:
         BING_API_KEY: !Ref BING_API_KEY
+  Api:
+    Cors:
+      AllowOrigin: "'*'"
+
 
 Resources:
   MainFunction:
