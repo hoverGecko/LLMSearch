@@ -1,4 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import AzureGPT from './src/AzureGPT';
+import BingSearchService from './src/BingSearchService';
+import SnippetSummarizer from './src/SnippetSummarizer';
 
 /**
  *
@@ -12,7 +15,6 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     const query = event.queryStringParameters?.['q'];
-
     if (query == null) {
         return {
             statusCode: 400,
@@ -20,39 +22,39 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
         };
     };
 
-    const apiKey = process.env.BING_API_KEY;
-    const url = `https://api.bing.microsoft.com/v7.0/search?q=${encodeURIComponent(query)}`;
-
-    if (apiKey == null) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'Failed to get Bing API Key.' })
-        };
-    };
+    const { AZURE_AI_API_KEY, BING_API_KEY, AZURE_AI_BASE_URL } = process.env;
+    const searchService = new BingSearchService(BING_API_KEY);
+    const summarizer = new SnippetSummarizer(new AzureGPT(AZURE_AI_API_KEY, AZURE_AI_BASE_URL));
 
     try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Ocp-Apim-Subscription-Key': apiKey,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const searchResult = await searchService.search(query);
+        console.log('after search')
+        if (searchResult._type == 'ErrorResponse') {
+            return {
+                statusCode: 500,
+                body: JSON.stringify({ error: 'Bing returns ErrorResponse.', bingErrorResponse: searchResult })
+            };
         }
-
-        const data = await response.json();
+        // Use summarizer to summarize the first 1 results' snippets
+        for (let i = 0; i < 1; ++i) {
+            const webpage = searchResult.webPages?.value[i];
+            if (webpage?.snippet) {
+                try {
+                    const summary = await summarizer.summarize(webpage.snippet);
+                    webpage.snippet = summary;
+                } catch (e) {
+                    console.error(e);
+                }
+            };
+        }
         return {
             statusCode: 200,
-            body: JSON.stringify(data)
+            body: JSON.stringify(searchResult)
         };
-    } catch (error) {
-        console.error('Error fetching data:', error);
+    } catch (e)  {
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'Failed to fetch search results' })
+            body: JSON.stringify({ error: `HTTP error when fetching search API results. Error: ${e}` })
         };
     }
 };
