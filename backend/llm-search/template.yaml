@@ -14,6 +14,7 @@ Globals:
         BING_API_KEY: !Ref BING_API_KEY
         AZURE_AI_API_KEY: !Ref AZURE_AI_API_KEY
         AZURE_AI_BASE_URL: !Ref AZURE_AI_BASE_URL
+        HYPERBOLIC_AI_API_KEY: !Ref HYPERBOLIC_AI_API_KEY
   Api:
     Cors:
       AllowOrigin: "'*'"

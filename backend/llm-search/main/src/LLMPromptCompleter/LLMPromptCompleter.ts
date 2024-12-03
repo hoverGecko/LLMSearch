@@ -1,23 +1,7 @@
-import { AzureOpenAI } from 'openai';
+import OpenAI from 'openai';
 
-type AzureOpenAiDeployment = 'gpt-35-turbo';
-
-export default class AzureGPT implements LLM {
-    private client: AzureOpenAI;
-    /**
-     * Create AzureOpenAI client and store the specified LLM to be used.
-     * @param apiKey Azure AI key
-     * @param model LLM to be used
-     */
-    constructor(
-        apiKey: string,
-        endpoint: string,
-        apiVersion: string = '2024-05-01-preview',
-        deployment: AzureOpenAiDeployment = 'gpt-35-turbo',
-        private model: AzureOpenAiDeployment = 'gpt-35-turbo',
-    ) {
-        this.client = new AzureOpenAI({ apiKey, endpoint, apiVersion, deployment });
-    }
+export default abstract class LLMPromptCompleter {
+    constructor(private client: OpenAI, private model: string) {}
 
     /**
      * Prompt AI with the query.

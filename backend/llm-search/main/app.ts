@@ -1,7 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import AzureGPT from './src/AzureGPT';
+import AzureGPTCompleter from './src/LLMPromptCompleter/AzureGPTCompleter';
 import BingSearchService from './src/BingSearchService';
 import SnippetSummarizer from './src/SnippetSummarizer';
+import HyperbolicCompleter from './src/LLMPromptCompleter/HyperbolicCompletor';
 
 /**
  *
@@ -22,9 +23,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
         };
     };
 
-    const { AZURE_AI_API_KEY, BING_API_KEY, AZURE_AI_BASE_URL } = process.env;
+    const { BING_API_KEY } = process.env;
     const searchService = new BingSearchService(BING_API_KEY);
-    const summarizer = new SnippetSummarizer(new AzureGPT(AZURE_AI_API_KEY, AZURE_AI_BASE_URL));
+    const summarizer = new SnippetSummarizer(new HyperbolicCompleter("meta-llama/Llama-3.2-3B-Instruct"));
 
     try {
         const searchResult = await searchService.search(query);
@@ -36,7 +37,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
             };
         }
         // Use summarizer to summarize the first 1 results' snippets
-        for (let i = 0; i < 1; ++i) {
+        for (let i = 0; i < 3; ++i) {
             const webpage = searchResult.webPages?.value[i];
             if (webpage?.snippet) {
                 try {

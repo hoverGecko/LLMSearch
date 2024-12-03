@@ -1,5 +1,7 @@
+import LLMPromptCompleter from "./LLMPromptCompleter/LLMPromptCompleter"
+
 export default class SnippetSummarizer {
-    constructor(private llm: LLM) {
+    constructor(private llm: LLMPromptCompleter) {
     }
     public summarize = (query: string, snippet: string) => {
         return this.llm.complete(`
