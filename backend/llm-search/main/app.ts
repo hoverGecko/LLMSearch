@@ -40,7 +40,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
             const webpage = searchResult.webPages?.value[i];
             if (webpage?.snippet) {
                 try {
-                    const summary = await summarizer.summarize(webpage.snippet);
+                    const summary = await summarizer.summarize(query, webpage.snippet);
                     webpage.snippet = summary;
                 } catch (e) {
                     console.error(e);

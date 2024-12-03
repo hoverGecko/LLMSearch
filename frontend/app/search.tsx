@@ -92,11 +92,13 @@ const styles = StyleSheet.create({
   resultTitle: {
     color: '#0000EE',
     textDecorationLine: 'underline',
-    fontSize: 18
+    fontSize: 18,
+    alignSelf: "flex-start"
   },
   resultUrl: {
     fontSize: 12,
-    color: '#555555'
+    color: '#555555',
+    alignSelf: "flex-start"
   },
   resultContent: {
     fontSize: 14
