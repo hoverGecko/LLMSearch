@@ -1,8 +1,9 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import AzureGPTCompleter from './src/LLMPromptCompleter/AzureGPTCompleter';
-import BingSearchService from './src/BingSearchService';
-import SnippetSummarizer from './src/SnippetSummarizer';
+import BingSearchService from './src/BingSearch/BingSearchService';
+import SnippetSummarizer from './src/HtmlSummarizer';
 import HyperbolicCompleter from './src/LLMPromptCompleter/HyperbolicCompletor';
+import WebScraper from './src/WebScraper';
 
 /**
  *
@@ -26,6 +27,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     const { BING_API_KEY } = process.env;
     const searchService = new BingSearchService(BING_API_KEY);
     const summarizer = new SnippetSummarizer(new HyperbolicCompleter("meta-llama/Llama-3.2-3B-Instruct"));
+    const scraper = new WebScraper();
 
     try {
         const searchResult = await searchService.search(query);
@@ -36,15 +38,17 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
                 body: JSON.stringify({ error: 'Bing returns ErrorResponse.', bingErrorResponse: searchResult })
             };
         }
-        // Use summarizer to summarize the first 1 results' snippets
-        for (let i = 0; i < 3; ++i) {
+        // Use summarizer to summarize the first results' contents
+        for (let i = 0; i < 1; ++i) {
             const webpage = searchResult.webPages?.value[i];
-            if (webpage?.snippet) {
-                try {
-                    const summary = await summarizer.summarize(query, webpage.snippet);
+            if (webpage?.url) {
+                console.log(`${i}-th URL: <${webpage.url}>`)
+                const htmlContent = await scraper.urlToHtml(webpage.url);
+                if (htmlContent) {
+                    console.log(`summarizing html`)
+                    console.log(`html length: ${htmlContent.length}`)
+                    const summary = await summarizer.summarize(query, htmlContent);
                     webpage.snippet = summary;
-                } catch (e) {
-                    console.error(e);
                 }
             };
         }
@@ -53,6 +57,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
             body: JSON.stringify(searchResult)
         };
     } catch (e)  {
+        console.error(`500 error when fetching search API results. Error: ${e}`);
         return {
             statusCode: 500,
             body: JSON.stringify({ error: `HTTP error when fetching search API results. Error: ${e}` })

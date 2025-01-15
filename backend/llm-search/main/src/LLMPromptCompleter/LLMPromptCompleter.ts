@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { ChatCompletionMessageParam } from 'openai/resources';
 
 export default abstract class LLMPromptCompleter {
     constructor(private client: OpenAI, private model: string) {}
@@ -8,13 +9,11 @@ export default abstract class LLMPromptCompleter {
      * @param query
      * @returns AI completion of the query.
      */
-    public complete = async (query: string) => {
+    public complete = async (messages: ChatCompletionMessageParam[] | string) => {
         const result = await this.client.chat.completions.create({
-            messages: [{ role: 'user', content: query }],
+            messages: typeof messages === "string" ? [{ role: 'user', content: messages }] : messages,
             model: this.model,
-            max_tokens: 800,
-            temperature: 0.7,
-            top_p: 0.95,
+            temperature: 0.1,
             frequency_penalty: 0,
             presence_penalty: 0,
             stop: null
