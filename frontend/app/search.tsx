@@ -9,6 +9,8 @@ import SearchBar from '@/components/SearchBar';
 import Animated, { useAnimatedRef } from 'react-native-reanimated';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { ExternalLink } from '@/components/ExternalLink';
+import ResultContainer from '@/components/ResultContainer';
+import { ActivityIndicator, Text } from 'react-native-paper';
     
 const SearchResult = (params: {result: {name: string, url: string, snippet: string}}) => {
     const result = params.result;
@@ -28,7 +30,7 @@ const SearchResult = (params: {result: {name: string, url: string, snippet: stri
           </ExternalLink>
           <ThemedText 
             style={styles.resultContent} 
-            numberOfLines={3}
+            numberOfLines={10}
           >
             {result.snippet}
           </ThemedText>
@@ -41,14 +43,20 @@ export default function SearchScreen() {
 
   const params = useLocalSearchParams<{q: string}>();
   const [bingApiResult, setBingApiResult] = useState<any>();
+  const [generalSummary, setGeneralSummary] = useState<string>();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   useEffect(() => {
     if (!params.q) {
         return;
     }
+    setGeneralSummary('');
+    setBingApiResult(null);
     fetch(`${backendUrl}/search?${new URLSearchParams({q: params.q})}`)
     .then(res => res.json())
-    .then(text => setBingApiResult(text))
+    .then(apiResult => {
+      setGeneralSummary(apiResult.generalSummary);
+      setBingApiResult(apiResult.searchResult);
+    })
     .catch(e => {
       console.error(e);
     });
@@ -64,9 +72,20 @@ export default function SearchScreen() {
         scrollEventThrottle={16}
       >
           <SearchBar value={params.q} />
-          <ThemedView style={styles.results}>
+          <ResultContainer 
+            title="General Summary"
+            loaded={!!generalSummary}
+          >
+            <Text style={styles.resultContent}>
+              {generalSummary}
+            </Text>
+          </ResultContainer>
+          <ResultContainer
+            title="Results"
+            loaded={!!results}
+          >
               {results?.map((r: any) => <SearchResult key={r.id} result={r} />)}
-          </ThemedView>
+          </ResultContainer>
       </Animated.ScrollView>
   );
 }
@@ -102,5 +121,11 @@ const styles = StyleSheet.create({
   },
   resultContent: {
     fontSize: 14
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    margin: 10    
   }
 });

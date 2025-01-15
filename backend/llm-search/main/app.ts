@@ -1,9 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import AzureGPTCompleter from './src/LLMPromptCompleter/AzureGPTCompleter';
 import BingSearchService from './src/BingSearch/BingSearchService';
-import SnippetSummarizer from './src/HtmlSummarizer';
+import PartialSummarizer from './src/Summarizer/PartialSummarizer';
 import HyperbolicCompleter from './src/LLMPromptCompleter/HyperbolicCompletor';
 import WebScraper from './src/WebScraper';
+import GeneralSummarizer from './src/Summarizer/GeneralSummarizer';
+import WebpageSummarizer from './src/Summarizer/WebpageSummarizer';
 
 /**
  *
@@ -14,7 +15,6 @@ import WebScraper from './src/WebScraper';
  * @returns {Object} object - API Gateway Lambda Proxy Output Format
  *
  */
-
 export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     const query = event.queryStringParameters?.['q'];
     if (query == null) {
@@ -26,7 +26,10 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
 
     const { BING_API_KEY } = process.env;
     const searchService = new BingSearchService(BING_API_KEY);
-    const summarizer = new SnippetSummarizer(new HyperbolicCompleter("meta-llama/Llama-3.2-3B-Instruct"));
+    const completor = new HyperbolicCompleter("meta-llama/Llama-3.2-3B-Instruct");
+    const partialSummarizer = new PartialSummarizer(completor);
+    const generalSummarizer = new GeneralSummarizer(completor);
+    const webpageSummarizer = new WebpageSummarizer(completor);
     const scraper = new WebScraper();
 
     try {
@@ -38,29 +41,55 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
                 body: JSON.stringify({ error: 'Bing returns ErrorResponse.', bingErrorResponse: searchResult })
             };
         }
-        // Use summarizer to summarize the first results' contents
-        for (let i = 0; i < 1; ++i) {
+
+        // Use summarizer to summarize the results' contents up to summarizedCount
+        const summarizedCount = 3;
+        // create partial summaries
+        const partialSummaryPromises: Promise<string>[] = [];
+        const htmlContentPromises: Promise<string | null>[] = [];
+        for (let i = 0; i < summarizedCount; ++i) {
             const webpage = searchResult.webPages?.value[i];
             if (webpage?.url) {
                 console.log(`${i}-th URL: <${webpage.url}>`)
-                const htmlContent = await scraper.urlToHtml(webpage.url);
-                if (htmlContent) {
-                    console.log(`summarizing html`)
-                    console.log(`html length: ${htmlContent.length}`)
-                    const summary = await summarizer.summarize(query, htmlContent);
-                    webpage.snippet = summary;
-                }
+                htmlContentPromises.push(scraper.urlToHtml(webpage.url));
             };
         }
+        for (const htmlContent of await Promise.all(htmlContentPromises)) {
+            if (!htmlContent) {
+                partialSummaryPromises.push(new Promise(resolve => {resolve('Fail to load webpage content.');}));
+            }
+            else {
+                const summary = partialSummarizer.summarize(query, htmlContent);
+                partialSummaryPromises.push(summary)
+            }
+        }
+        // create summaries for each webpage as well as general summary
+        const partialSummaries = await Promise.all(partialSummaryPromises);
+        const generalSummary = await generalSummarizer.summarize(query, partialSummaries);
+        const webpageSummariesPromises = partialSummaries.map(summary => webpageSummarizer.summarize(query, summary));
+        const webpageSummaries = await Promise.all(webpageSummariesPromises);
+        for (let i = 0; i < summarizedCount; ++i) {
+            const webpage = searchResult.webPages?.value[i];
+            if (webpage?.url) {
+                webpage.snippet = webpageSummaries[i];
+            }
+        }
+
         return {
             statusCode: 200,
-            body: JSON.stringify(searchResult)
+            body: JSON.stringify({searchResult: searchResult, generalSummary: generalSummary}),
+            headers: {
+                'Content-Type': 'application/json'
+            }
         };
     } catch (e)  {
         console.error(`500 error when fetching search API results. Error: ${e}`);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: `HTTP error when fetching search API results. Error: ${e}` })
+            body: JSON.stringify({ error: `HTTP error when fetching search API results. Error: ${e}` }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
         };
     }
 };

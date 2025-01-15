@@ -16,14 +16,13 @@ export default class WebScraper {
      * @param timeout timeout of loading webpage in milliseconds, default is 5000ms.
      * @returns HTML string, or null if webpage loading times out or has error.
      */
-    public urlToHtml = async (url: string | URL, timeout: number = 5000): Promise<string | null> => {    
+    public urlToHtml = async (url: string | URL, timeout: number = 20000): Promise<string | null> => {    
         try {
             const browser = await this.browser;
             const page = await browser.newPage();
-            console.log('got page')
             await page.goto(url.toString(), { waitUntil: 'networkidle2', timeout: timeout });
             const html = await page.content();
-            console.log('got html')
+            console.log(`got html: ${url}`)
             page.close();
             return html;
         } catch (e) {

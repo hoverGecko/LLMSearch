@@ -1,7 +1,7 @@
-import LLMPromptCompleter from "./LLMPromptCompleter/LLMPromptCompleter"
+import LLMPromptCompleter from "../LLMPromptCompleter/LLMPromptCompleter"
 import * as cheerio from "cheerio";
 
-export default class SnippetSummarizer {
+export default class PartialSummarizer {
     constructor(private llm: LLMPromptCompleter) {
     }
     /**
@@ -15,14 +15,15 @@ export default class SnippetSummarizer {
     }
     public summarize = (query: string, htmlContent: string): Promise<string> => {
         const text = this.htmlToBodyText(htmlContent);
-        console.log(`got text: ${text}`);
-        console.log(`text length: ${text.length}`);
+        console.log(`got text of length ${text.length}: ${text.slice(0, 20)}...`);
         return this.llm.complete([
             {
                 role: 'system',
                 content:
                 `
                 Extract all information relevant to the user query from the provided webpage body text content. Output it in paragraphs.
+                Do not include introductory phrases or explanations; start directly with the relevant information. 
+                If the webpage does not load, simply say 'Fail to load the webpage content.' without additional sentences.
                 `
             },
             {
@@ -38,23 +39,10 @@ export default class SnippetSummarizer {
                 <website body text starts>
                 ${text}
                 <website body text ends>
+
+                Your summary:
                 `
             }
         ]);
-        // return this.llm.complete([
-        //     {
-        //         role: 'system',
-        //         content:
-        //         `
-        //         Answer the user query by summarizing the webpage body text content in 2 sentences in readable language. 
-        //         Output the summary in the format 'Summary: ...'.
-        //         The user query: "${query}"
-        //         `
-        //     },
-        //     {
-        //         role: 'user', 
-        //         content: `The webpage body text: "${text}"`
-        //     }
-        // ]);
     }
 }
