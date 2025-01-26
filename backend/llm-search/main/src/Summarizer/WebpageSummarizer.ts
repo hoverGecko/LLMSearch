@@ -1,7 +1,7 @@
-import LLMPromptCompleter from "../LLMPromptCompleter/LLMPromptCompleter"
+import LLMPromptCompletor from "../LLMPromptCompleter/LLMPromptCompletor"
 
 export default class WebpageSummarizer {
-    constructor(private llm: LLMPromptCompleter) {
+    constructor(private llm: LLMPromptCompletor) {
     }
     public summarize = (query: string, partialSummary: string): Promise<string> => {
         return this.llm.complete([

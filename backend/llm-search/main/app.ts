@@ -1,10 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import BingSearchService from './src/BingSearch/BingSearchService';
 import PartialSummarizer from './src/Summarizer/PartialSummarizer';
-import HyperbolicCompleter from './src/LLMPromptCompleter/HyperbolicCompletor';
+import HyperbolicCompletor from './src/LLMPromptCompleter/HyperbolicCompletor';
 import WebScraper from './src/WebScraper';
 import GeneralSummarizer from './src/Summarizer/GeneralSummarizer';
 import WebpageSummarizer from './src/Summarizer/WebpageSummarizer';
+import DeepSeekCompletor from './src/LLMPromptCompleter/DeepSeekCompletor';
 
 /**
  *
@@ -26,7 +27,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
 
     const { BING_API_KEY } = process.env;
     const searchService = new BingSearchService(BING_API_KEY);
-    const completor = new HyperbolicCompleter("meta-llama/Llama-3.2-3B-Instruct");
+    const completor = new DeepSeekCompletor('deepseek-chat');
     const partialSummarizer = new PartialSummarizer(completor);
     const generalSummarizer = new GeneralSummarizer(completor);
     const webpageSummarizer = new WebpageSummarizer(completor);

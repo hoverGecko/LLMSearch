@@ -1,9 +1,9 @@
 import { AzureOpenAI } from 'openai';
-import LLMPromptCompleter from './LLMPromptCompleter';
+import LLMPromptCompletor from './LLMPromptCompletor';
 
 type AzureOpenAiDeployment = 'gpt-35-turbo';
 
-export default class AzureGPTCompleter extends LLMPromptCompleter {
+export default class AzureGPTCompletor extends LLMPromptCompletor {
     /**
      * Create AzureOpenAI client and store the specified LLM to be used.
      * @param apiKey Azure AI key

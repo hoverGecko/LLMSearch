@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import LLMPromptCompleter from './LLMPromptCompleter';
+import LLMPromptCompletor from './LLMPromptCompletor';
 
 /** Current text models on Hyperbolic as of 2024/12/04 */
 type HyperbolicModel = 
@@ -14,7 +14,7 @@ type HyperbolicModel =
     "meta-llama/Meta-Llama-3.1-70B-Instruct" |
     "meta-llama/Meta-Llama-3.1-8B-Instruct";
 
-export default class HyperbolicCompleter extends LLMPromptCompleter {
+export default class HyperbolicCompletor extends LLMPromptCompletor {
     constructor(model: HyperbolicModel) {
         super(new OpenAI({apiKey: process.env.HYPERBOLIC_AI_API_KEY, baseURL: 'https://api.hyperbolic.xyz/v1'}), model);
     }

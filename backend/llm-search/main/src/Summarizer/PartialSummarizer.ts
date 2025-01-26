@@ -1,8 +1,8 @@
-import LLMPromptCompleter from "../LLMPromptCompleter/LLMPromptCompleter"
+import LLMPromptCompletor from "../LLMPromptCompleter/LLMPromptCompletor"
 import * as cheerio from "cheerio";
 
 export default class PartialSummarizer {
-    constructor(private llm: LLMPromptCompleter) {
+    constructor(private llm: LLMPromptCompletor) {
     }
     /**
      * Extract body text content from HTML string, removing tags, images, links, scripts and extra whitespaces.

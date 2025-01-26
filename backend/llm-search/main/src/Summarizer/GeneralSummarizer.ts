@@ -1,7 +1,7 @@
-import LLMPromptCompleter from "../LLMPromptCompleter/LLMPromptCompleter"
+import LLMPromptCompletor from "../LLMPromptCompleter/LLMPromptCompletor"
 
 export default class GeneralSummarizer {
-    constructor(private llm: LLMPromptCompleter) {
+    constructor(private llm: LLMPromptCompletor) {
     }
     public summarize = (query: string, partialSummaries: string[]): Promise<string> => {
         const summariesQuery = partialSummaries.map((summary, index) => {
