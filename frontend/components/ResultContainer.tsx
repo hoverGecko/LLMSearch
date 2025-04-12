@@ -4,42 +4,65 @@ import { Text, Surface } from 'react-native-paper';
 
 /**
  * Container with a title and React elements as content. 
- * If loaded is false, then show a loading spinner.
- * @param param0 
- * @returns 
+ * Displays content based on loading, error, and loaded states.
+ * - Shows loading indicator if `loading` is true.
+ * - Shows error message if `error` is true.
+ * - Shows children if `loaded` is true (and not loading or error).
+ * @param param0 Props including title, children, and state flags.
+ * @returns The container component.
  */
-const ResultContainer = ({ title, children, loaded = true }: PropsWithChildren<{title: string, loaded: boolean}>) => {
-  return (
-    <Surface style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      {loaded ? children : (
-        <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" />
-        </View>
-      )}
-    </Surface>
-  );
+const ResultContainer = ({
+    title,
+    children,
+    loaded = false, // Default to not loaded
+    loading = false,
+    error = false
+}: PropsWithChildren<{ title: string; loaded?: boolean; loading?: boolean; error?: boolean }>) => {
+    return (
+        <Surface style={styles.container}>
+            <Text style={styles.title}>{title}</Text>
+            {loading ? (
+                <View style={styles.statusContainer}>
+                    <ActivityIndicator size="large" />
+                </View>
+            ) : error ? (
+                <View style={styles.statusContainer}>
+                    {/* Display children if they represent an error message, otherwise a default */}
+                    {React.Children.count(children) > 0 ? children : <Text style={styles.errorText}>An error occurred.</Text>}
+                </View>
+            ) : loaded ? (
+                 children // Show content only when loaded and not loading/error
+            ) : (
+                 null // Or a placeholder like <Text>Waiting for results...</Text>
+            )}
+        </Surface>
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-    padding: 16,
-    margin: 8,
-    elevation: 2, // Gives a slight shadow effect
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-    margin: 10
-  }
+    container: {
+        backgroundColor: '#f0f0f0',
+        borderRadius: 10,
+        padding: 16,
+        marginVertical: 8, // Use vertical margin
+        elevation: 2, // Gives a slight shadow effect
+        minHeight: 80, // Ensure minimum height for status indicators
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 12, // Increased margin
+    },
+    statusContainer: { // Renamed from loadingContainer
+        flex: 1, // Take remaining space
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: 50, // Ensure space for indicator/text
+    },
+    errorText: {
+        color: 'red',
+        fontSize: 14,
+    }
 });
 
 export default ResultContainer;

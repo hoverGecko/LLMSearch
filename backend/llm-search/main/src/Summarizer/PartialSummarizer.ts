@@ -1,20 +1,9 @@
 import LLMPromptCompletor from "../LLMPromptCompleter/LLMPromptCompletor"
-import * as cheerio from "cheerio";
 
 export default class PartialSummarizer {
     constructor(private llm: LLMPromptCompletor) {
     }
-    /**
-     * Extract body text content from HTML string, removing tags, images, links, scripts and extra whitespaces.
-     * @param htmlContent HTML string.
-     */
-    private htmlToBodyText = (htmlContent: string): string => {
-        const $ = cheerio.load(htmlContent);
-        $('script, style, a, img').remove();
-        return $('body').text().replace(/\s+/g, ' ');
-    }
-    public summarize = (query: string, htmlContent: string): Promise<string> => {
-        const text = this.htmlToBodyText(htmlContent);
+    public summarize = (query: string, text: string): Promise<string> => {
         console.log(`got text of length ${text.length}: ${text.slice(0, 20)}...`);
         return this.llm.complete([
             {

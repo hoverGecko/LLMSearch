@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources';
 
 export default abstract class LLMPromptCompletor {
-    constructor(private client: OpenAI, private model: string) {}
+    constructor(private client: OpenAI, readonly model: string) {}
 
     /**
      * Prompt AI with the query.

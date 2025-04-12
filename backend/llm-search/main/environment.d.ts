@@ -2,9 +2,9 @@ declare global {
     namespace NodeJS {
         interface ProcessEnv {
             BING_API_KEY: string;
-            AZURE_AI_API_KEY: string;
-            AZURE_AI_BASE_URL: string;
             HYPERBOLIC_AI_API_KEY: string;
+            DEEPSEEK_API_KEY: string;
+            OPEN_ROUTER_API_KEY: string;
         }
     }
 }

@@ -8,16 +8,59 @@ Globals:
   Function:
     Environment:
       Variables:
-        BING_API_KEY: !Ref BING_API_KEY
-        AZURE_AI_API_KEY: !Ref AZURE_AI_API_KEY
-        AZURE_AI_BASE_URL: !Ref AZURE_AI_BASE_URL
-        HYPERBOLIC_AI_API_KEY: !Ref HYPERBOLIC_AI_API_KEY
-        DEEPSEEK_API_KEY: !Ref DEEPSEEK_API_KEY
+        BING_API_KEY: !Ref BingApiKey
+        HYPERBOLIC_AI_API_KEY: !Ref HyperbolicAiApiKey
+        DEEPSEEK_API_KEY: !Ref DeepseekApiKey
+        OPEN_ROUTER_API_KEY: !Ref OpenRouterApiKey
   Api:
     Cors:
-      AllowOrigin: "'*'" # To be changed
-      
+      AllowOrigin: "'*'" # Adjust for production environment
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'" # Explicitly allow Content-Type and X-Api-Key
+      AllowMethods: "'GET,POST,OPTIONS'" # Allow POST and OPTIONS for preflight
+
+Parameters:
+  BingApiKey: # Renamed Parameter
+    Type: String
+    NoEcho: true
+  HyperbolicAiApiKey: # Renamed Parameter
+    Type: String
+    NoEcho: true
+  DeepseekApiKey: # Renamed Parameter
+    Type: String
+    NoEcho: true
+  OpenRouterApiKey:
+    Type: String
+    NoEcho: true
+
 Resources:
+  LlmSearchApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: LlmSearchFrontendKey
+      Description: API Key for the LLM Search Frontend
+      Enabled: true
+      GenerateDistinctId: true # Let AWS generate the key value
+
+  LlmSearchUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: LlmSearchFrontendUsagePlan
+      Description: Usage plan for the LLM Search Frontend
+      ApiStages:
+        - ApiId: !Ref ServerlessRestApi # Reference the implicit API Gateway
+          Stage: !Ref ServerlessRestApiProdStage # Reference the implicit Prod stage
+      Throttle: # Add basic rate limiting
+        BurstLimit: 5
+        RateLimit: 10
+
+  LlmSearchUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref LlmSearchApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref LlmSearchUsagePlan
+
+  # Shared Layer for Chromium
   ChromiumLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -32,31 +75,125 @@ Resources:
       BuildMethod: *nodejsRuntime
       BuildArchitecture: *chromiumArch
 
-  MainFunction:
+  # Function to handle the initial search request
+  SearchFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main/
-      Handler: app.lambdaHandler
+      Handler: handlers/searchHandler.handler # Updated path and assuming 'handler' export
       Runtime: *nodejsRuntime
-      Architectures: 
+      Architectures:
         - *chromiumArch
-      Layers: 
+      Layers:
         - !Ref ChromiumLayer
       Events:
-        Search:
+        SearchApi: # Renamed event logical ID
           Type: Api
           Properties:
+            RestApiId: !Ref ServerlessRestApi
             Path: /search
             Method: get
-      Timeout: 60
-      MemorySize: 4096
-    Metadata: # Manage esbuild properties
+            Auth:
+              ApiKeyRequired: true
+      Timeout: 30
+      MemorySize: 1024
+    Metadata:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
         Target: "es2020"
         Sourcemap: true
-        EntryPoints: 
-          - app.ts
+        EntryPoints:
+          - handlers/searchHandler.ts # Updated path
         External:
           - "@sparticuz/chromium"
+
+  # Function to process a single URL (scrape + partial summary)
+  ProcessUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: main/
+      Handler: handlers/processUrlHandler.handler # Updated path and assuming 'handler' export
+      Runtime: *nodejsRuntime
+      Architectures:
+        - *chromiumArch
+      Events:
+        ProcessUrlApi: # New event logical ID
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /process-url # New Path
+            Method: post # New Method
+            Auth:
+              ApiKeyRequired: true
+      Timeout: 120 # Needs longer timeout for scraping/LLM
+      MemorySize: 3008 # Needs more memory for Chromium/LLM
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - handlers/processUrlHandler.ts # Updated path
+        # Removed External for this function as it doesn't directly use chromium
+
+  # Function to generate the GENERAL summary from partial summaries
+  GenerateGeneralSummaryFunction: # Renamed Function
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: main/
+      Handler: handlers/generateGeneralSummaryHandler.handler # Updated path
+      Runtime: *nodejsRuntime
+      Architectures:
+        - *chromiumArch
+      # No Chromium layer needed
+      Events:
+        GenerateGeneralSummaryApi: # Renamed Event ID
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /generate-general-summary # Updated Path
+            Method: post
+            Auth:
+              ApiKeyRequired: true
+      Timeout: 60
+      MemorySize: 512
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - handlers/generateGeneralSummaryHandler.ts # Updated path
+
+  # Function to generate a single WEBPAGE summary
+  GenerateWebpageSummaryFunction: # New Function
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: main/
+      Handler: handlers/generateWebpageSummaryHandler.handler # Updated path
+      Runtime: *nodejsRuntime
+      Architectures:
+        - *chromiumArch
+      # No Chromium layer needed
+      Events:
+        GenerateWebpageSummaryApi: # New Event ID
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /generate-webpage-summary # New Path
+            Method: post
+            Auth:
+              ApiKeyRequired: true
+      Timeout: 60 # Timeout for LLM call
+      MemorySize: 512 # Memory for LLM call
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - handlers/generateWebpageSummaryHandler.ts # Updated path

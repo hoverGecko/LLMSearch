@@ -209,3 +209,5 @@ $RECYCLE.BIN/
 
 # Local environment json
 env.json
+
+samconfig.toml
