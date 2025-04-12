@@ -2,6 +2,11 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Environment
+In `.env`, set the following variables:
+EXPO_PUBLIC_API_KEY=Backend API Key from AWS API Gateway, will be included in x-api-key headers
+EXPO_PUBLIC_BACKEND_URL=Backend API URL
+
 ## Get started
 
 1. Install dependencies

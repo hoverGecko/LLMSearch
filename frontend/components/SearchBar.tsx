@@ -9,7 +9,7 @@ const SearchBar = (params: {value?: string, style?: StyleProp<ViewStyle>}) => {
   const [query, setQuery] = useState(params.value ?? '');
   return (
     <ThemedView style={params.style ?? styles.view}>
-      <Searchbar style={styles.searchBar} value={query} onChangeText={setQuery} />
+      <Searchbar icon="magnify" clearIcon="close" style={styles.searchBar} value={query} onChangeText={setQuery} />
       {query ? (
         <Link
           href={{
