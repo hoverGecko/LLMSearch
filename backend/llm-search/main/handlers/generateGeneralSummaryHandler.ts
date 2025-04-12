@@ -1,20 +1,20 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import GeneralSummarizer from '../src/Summarizer/GeneralSummarizer';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
-import { createResponse, handleError } from './lambdaHandlerUtils';
+import { createJsonResponse, handleError } from './lambdaHandlerUtils';
 
 // --- Handler for generating the GENERAL summary ---
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => { // Renamed handler export
     // Handle OPTIONS request for CORS preflight
     if (event.httpMethod === 'OPTIONS') {
-        return createResponse(200, {});
+        return createJsonResponse(200, {});
     }
     if (event.httpMethod !== 'POST') {
-         return createResponse(405, { error: `Unsupported method: ${event.httpMethod}` });
+         return createJsonResponse(405, { error: `Unsupported method: ${event.httpMethod}` });
     }
 
     if (!event.body) {
-        return createResponse(400, { error: 'Missing request body.' });
+        return createJsonResponse(400, { error: 'Missing request body.' });
     }
 
     let query: string | undefined;
@@ -36,7 +36,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     if (validPartialSummaries.length === 0) {
         console.warn("No valid partial summaries provided to generate general summary.");
         // Return empty summary or an appropriate message
-         return createResponse(200, { generalSummary: "Could not generate summary as no website content could be processed." });
+         return createJsonResponse(200, { generalSummary: "Could not generate summary as no website content could be processed." });
     }
 
     // Instantiate necessary services
@@ -53,7 +53,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
         console.log('General summary generated.');
 
-        return createResponse(200, {
+        return createJsonResponse(200, {
             generalSummary: generalSummary,
         });
 

@@ -14,7 +14,10 @@ Globals:
         OPEN_ROUTER_API_KEY: !Ref OpenRouterApiKey
   Api:
     Cors:
-      AllowOrigin: "'https://llm-search.pages.dev'"
+      AllowOrigin: !If
+        - IsDevEnvironment        
+        - "'*'"                   
+        - "'https://llm-search.pages.dev'"
       AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'" # Explicitly allow Content-Type and X-Api-Key
       AllowMethods: "'GET,POST,OPTIONS'" # Allow POST and OPTIONS for preflight
 
@@ -31,6 +34,17 @@ Parameters:
   OpenRouterApiKey:
     Type: String
     NoEcho: true
+  EnvironmentType:
+    Type: String
+    Description: The deployment environment (dev or prod)
+    AllowedValues:
+      - dev
+      - prod
+    Default: prod
+
+Conditions:
+  IsDevEnvironment: !Equals [ !Ref EnvironmentType, dev ]
+  IsProdEnvironment: !Equals [ !Ref EnvironmentType, prod ]
 
 Resources:
   LlmSearchApiKey:

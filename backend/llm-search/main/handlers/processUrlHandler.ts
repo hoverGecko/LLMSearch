@@ -2,20 +2,20 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import PartialSummarizer from '../src/Summarizer/PartialSummarizer';
 import WebScraper from '../src/WebScraper';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
-import { createResponse, handleError } from './lambdaHandlerUtils';
+import { createJsonResponse, handleError } from './lambdaHandlerUtils';
 
 // --- Handler for processing a single URL ---
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     // Handle OPTIONS request for CORS preflight
     if (event.httpMethod === 'OPTIONS') {
-        return createResponse(200, {});
+        return createJsonResponse(200, {});
     }
     if (event.httpMethod !== 'POST') {
-         return createResponse(405, { error: `Unsupported method: ${event.httpMethod}` });
+         return createJsonResponse(405, { error: `Unsupported method: ${event.httpMethod}` });
     }
 
     if (!event.body) {
-        return createResponse(400, { error: 'Missing request body.' });
+        return createJsonResponse(400, { error: 'Missing request body.' });
     }
 
     let url: string | undefined;
@@ -44,13 +44,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         if (!htmlContent) {
             console.warn(`Failed to scrape content from ${url}`);
             // Return a specific indicator for failed scraping
-            return createResponse(200, { partialSummary: null, error: 'Failed to load webpage content.' });
+            return createJsonResponse(200, { partialSummary: null, error: 'Failed to load webpage content.' });
         }
 
         const partialSummary = await partialSummarizer.summarize(query, htmlContent);
         console.log(`Partial summary generated for ${url}`);
 
-        return createResponse(200, { partialSummary });
+        return createJsonResponse(200, { partialSummary });
 
     } catch (e) {
         return handleError(e, `Error processing URL: ${url}`);

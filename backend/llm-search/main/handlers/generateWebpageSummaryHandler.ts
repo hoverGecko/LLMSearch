@@ -1,20 +1,20 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import WebpageSummarizer from '../src/Summarizer/WebpageSummarizer'; // Use WebpageSummarizer
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
-import { createResponse, handleError } from './lambdaHandlerUtils';
+import { createJsonResponse, handleError } from './lambdaHandlerUtils';
 
 // --- Handler for generating a single WEBPAGE summary ---
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     // Handle OPTIONS request for CORS preflight
     if (event.httpMethod === 'OPTIONS') {
-        return createResponse(200, {});
+        return createJsonResponse(200, {});
     }
     if (event.httpMethod !== 'POST') {
-         return createResponse(405, { error: `Unsupported method: ${event.httpMethod}` });
+         return createJsonResponse(405, { error: `Unsupported method: ${event.httpMethod}` });
     }
 
     if (!event.body) {
-        return createResponse(400, { error: 'Missing request body.' });
+        return createJsonResponse(400, { error: 'Missing request body.' });
     }
 
     let query: string | undefined;
@@ -44,7 +44,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
         console.log('Webpage summary generated.');
 
-        return createResponse(200, {
+        return createJsonResponse(200, {
             webpageSummary: webpageSummary, // Return only the webpage summary
         });
 
