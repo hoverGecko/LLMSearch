@@ -6,8 +6,7 @@ export const createResponse = (statusCode: number, body: any, headers?: { [key: 
     body: JSON.stringify(body),
     headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*', // Adjust for production
-        'Access-Control-Allow-Methods': 'POST,OPTIONS', // Only POST/OPTIONS needed
+        'Access-Control-Allow-Origin': 'https://llm-search.pages.dev', // Adjust for production
         'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
         ...headers,
     },

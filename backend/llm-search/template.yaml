@@ -14,7 +14,7 @@ Globals:
         OPEN_ROUTER_API_KEY: !Ref OpenRouterApiKey
   Api:
     Cors:
-      AllowOrigin: "'*'" # Adjust for production environment
+      AllowOrigin: "'https://llm-search.pages.dev'"
       AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'" # Explicitly allow Content-Type and X-Api-Key
       AllowMethods: "'GET,POST,OPTIONS'" # Allow POST and OPTIONS for preflight
 
