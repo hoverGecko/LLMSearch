@@ -8,7 +8,7 @@ import Animated, { useAnimatedRef } from 'react-native-reanimated';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import ResultContainer from '@/components/ResultContainer';
 import SearchResultItem, { InitialResult, DetailedResult } from '@/components/SearchResultItem';
-import GeneralSummary from '@/components/GeneralSummary';
+import GeneralSummaryChat from '@/components/GeneralSummaryChat';
 
 type SearchResultStatus = 'pending' | 'loading' | 'loaded' | 'error';
 
@@ -190,7 +190,7 @@ export default function SearchScreen() {
             scrollEventThrottle={16}
         >
             <SearchBar value={query} />
-            <GeneralSummary
+            <GeneralSummaryChat
                 query={query}
                 initialResults={initialResults}
                 detailedResults={detailedResults}

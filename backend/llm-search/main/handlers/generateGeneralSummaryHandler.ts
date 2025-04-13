@@ -2,6 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import GeneralSummarizer from '../src/Summarizer/GeneralSummarizer';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
 import { createJsonResponse, handleError } from './lambdaHandlerUtils';
+import { ChatCompletionMessageParam } from 'openai/resources';
 
 // --- Handler for generating the GENERAL summary ---
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => { // Renamed handler export
@@ -40,24 +41,28 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     // Instantiate necessary services
-    // TODO: Select completor based on env/config or request parameter
     const completor = new OpenRouterCompletor('google/gemini-2.0-flash-001');
     const generalSummarizer = new GeneralSummarizer(completor);
 
     try {
         console.log(`Generating general summary for query: "${query}"`);
 
-        // Generate general summary from valid partial summaries
-        const generalSummary = await generalSummarizer.summarize(query, validPartialSummaries);
-
-
+        // Generate general summary and get the initial prompt
+        const { prompt, summary } = await generalSummarizer.summarize(query, validPartialSummaries);
         console.log('General summary generated.');
 
+        // Construct the initial chat history for later /chat use
+        const initialChatHistory: ChatCompletionMessageParam[] = [
+            ...prompt,
+            { role: 'assistant', content: summary }
+        ];
+
         return createJsonResponse(200, {
-            generalSummary: generalSummary,
+            generalSummary: summary,
+            initialChatHistory: initialChatHistory,
         });
 
     } catch (e) {
-        return handleError(e, 'Error generating general summary'); // Updated error message
+        return handleError(e, 'Error generating general summary');
     }
 };

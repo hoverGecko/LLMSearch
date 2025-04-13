@@ -16,7 +16,7 @@ export default class PartialSummarizer {
                 `
             },
             {
-                role: 'user', 
+                role: 'system', 
                 content: 
                 `
                 The user query: 

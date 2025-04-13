@@ -15,7 +15,7 @@ export default class WebpageSummarizer {
                 `
             },
             {
-                role: 'user', 
+                role: 'system', 
                 content: 
                 `
                 The user query: 
