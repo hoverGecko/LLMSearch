@@ -6,14 +6,14 @@ import LoadingIndicator from '@/components/LoadingIndicator';
 import { Text, Button, Chip } from 'react-native-paper';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
-
-// Define types for better state management
-// pending: Initial state
-// partial_loading: Fetching partial summary from /process-url
-// partial_error: Error fetching partial summary
-// summary_loading: Fetching final webpage summary from /generate-webpage-summary
-// loaded: Final webpage summary loaded successfully
-// summary_error: Error fetching final webpage summary
+/**
+ * pending: Initial state
+ * partial_loading: Fetching partial summary from /process-url
+ * partial_error: Error fetching partial summary
+ * summary_loading: Fetching final webpage summary from /generate-webpage-summary
+ * loaded: Final webpage summary loaded successfully
+ * summary_error: Error fetching final webpage summary
+ */
 export type ResultStatus = 'pending' | 'partial_loading' | 'partial_error' | 'summary_loading' | 'loaded' | 'summary_error';
 
 const arrowUpIcon = require("@/assets/images/arrow_up.svg");

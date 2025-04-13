@@ -52,13 +52,12 @@ export default function SearchScreen() {
                 console.log(`Received ${results.length} initial results.`);
                 setInitialResults(results);
 
-                // Initialize detailed results state ONLY for top N
                 setDetailedResults(results.slice(0, topN).map(r => ({
-                    id: r.id, // Use imported type
+                    id: r.id,
                     name: r.name,
                     url: r.url,
                     snippet: r.snippet,
-                    status: 'pending', // Use imported type
+                    status: 'pending',
                     partialSummary: null,
                     webpageSummary: null,
                 })));
@@ -70,41 +69,37 @@ export default function SearchScreen() {
     }, [query, topN]);
 
     const handleGenerateSummary = useCallback((url: string) => {
-        // Check if already processing/processed using URL
         if (detailedResults.some(dr => dr.url === url)) {
             console.log(`Summary generation already initiated or completed for ${url}`);
             return;
         }
 
-        // Find the corresponding initial result using URL
         const resultToAdd = initialResults.find(ir => ir.url === url);
         if (resultToAdd) {
             console.log(`Adding result for ${url} to detailed processing queue.`);
             setDetailedResults(prev => [
                 ...prev,
-                { // Keep the original id from Bing, but use URL for matching logic
-                    id: resultToAdd.id, // Keep original id
+                {
+                    id: resultToAdd.id,
                     name: resultToAdd.name,
-                    url: resultToAdd.url, // url is the key identifier now
+                    url: resultToAdd.url,
                     snippet: resultToAdd.snippet,
-            status: 'pending', // Use imported type
+                    status: 'pending',
                     partialSummary: null,
                     webpageSummary: null,
                 }
             ]);
         }
-    }, [initialResults, detailedResults]); // Dependencies for the callback - initialResults needed for find
+    }, [initialResults, detailedResults]);
 
     useEffect(() => {
         if (!query || detailedResults.length === 0) return;
 
-        // Find results that are 'pending' and process them
         const pendingResults = detailedResults.filter(r => r.status === 'pending');
 
-        if (pendingResults.length === 0) return; // No pending results to process
+        if (pendingResults.length === 0) return;
         pendingResults.forEach((result) => {
             console.log(`Processing URL: ${result.url}`);
-            // Update status to 'partial_loading' immediately for this specific item using URL matching
             setDetailedResults(prev => prev.map(item =>
                 item.url === result.url ? { ...item, status: 'partial_loading' } : item
             ));
@@ -127,7 +122,6 @@ export default function SearchScreen() {
 
                 if (!partialSummary) {
                     console.warn(`Partial summary failed for ${result.url}: ${partialError}`);
-                    // Update status using URL matching
                     setDetailedResults(prev => prev.map(item =>
                         item.url === result.url ? { ...item, status: 'partial_error', error: partialError || 'Failed to load content' } : item
                     ));
@@ -135,7 +129,6 @@ export default function SearchScreen() {
                 }
 
                 console.log(`Partial summary received for ${result.url}, fetching final summary...`);
-                 // Update status and store partial summary using URL matching
                 setDetailedResults(prev => prev.map(item =>
                     item.url === result.url ? { ...item, status: 'summary_loading', partialSummary: partialSummary } : item
                 ));
@@ -151,7 +144,6 @@ export default function SearchScreen() {
                 })
                 .then(summaryData => {
                     console.log(`Final webpage summary received for ${result.url}`);
-                    // Update status and store final summary using URL matching
                     setDetailedResults(prev => prev.map(item =>
                         item.url === result.url ? {
                             ...item,
@@ -162,15 +154,13 @@ export default function SearchScreen() {
                 })
                 .catch(e => {
                     console.error(`Error fetching final webpage summary for ${result.url}:`, e);
-                     // Update status using URL matching
-                    setDetailedResults(prev => prev.map(item =>
+                     setDetailedResults(prev => prev.map(item =>
                         item.url === result.url ? { ...item, status: 'summary_error', error: e.message } : item
                     ));
                 });
             })
             .catch(e => {
                 console.error(`Error fetching partial summary for ${result.url}:`, e);
-                 // Update status using URL matching
                 setDetailedResults(prev => prev.map(item =>
                     item.url === result.url ? { ...item, status: 'partial_error', error: e.message } : item
                 ));
@@ -187,7 +177,7 @@ export default function SearchScreen() {
         router.push(`/search?q=${encodeURIComponent(suggestion)}`);
     }, [router]);
 
-    const isLoadingInitial = initialResults.length === 0 && searchResultStatus === 'pending'; // Loading initial /search
+    const isLoadingInitial = initialResults.length === 0 && searchResultStatus === 'pending';
 
     return (
         <Animated.ScrollView
@@ -209,26 +199,22 @@ export default function SearchScreen() {
                 loading={!initialResults.length}
             >
                 {initialResults.map((initialRes, index) => {
-                    // Find detailed result using URL
                     const detailedRes = detailedResults.find(dr => dr.url === initialRes.url);
                     const isTopNItem = index < topN;
                     return (
                         <SearchResultItem
-                            key={initialRes.url} // Use URL as the key, guaranteed unique by backend deduplication
+                            key={initialRes.url}
                             initialResult={initialRes}
                             detailedResult={detailedRes}
                             isTopN={isTopNItem}
-                            // Pass URL to the handler
                             onGenerateSummary={() => handleGenerateSummary(initialRes.url)}
                             indicatorColor={tintColor}
                         />
                     );
                 })}
-                {/* Show message if initial search returned no results AND wasn't an error */}
                 {!isLoadingInitial && initialResults.length === 0 && searchResultStatus !== 'error' && (
                     <ThemedText>No results found for "{query}".</ThemedText>
                 )}
-                 {/* Show message if initial search itself failed */}
                  {searchResultStatus === 'error' && initialResults.length === 0 && (
                      <ThemedText style={styles.errorText}>Failed to fetch search results.</ThemedText>
                  )}
@@ -245,7 +231,7 @@ const styles = StyleSheet.create({
     titleContainer: {
         flexDirection: 'row',
         gap: 8,
-        marginBottom: 10, // Add some space below title
+        marginBottom: 10,
     },
     resultContent: {
         fontSize: 14,

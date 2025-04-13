@@ -19,24 +19,24 @@ export default class GeneralSummarizer {
                 role: 'system',
                 content:
                 `
-                Extract information relevant to the user query from the summaries of webpages provided. Output it in at most 3 paragraphs.
-                Do not include introductory phrases or explanations; start directly with the relevant information.
-                If the webpage does not load, simply say 'Fail to load the webpage content.' without additional sentences.
+Extract information relevant to the user query from the summaries of webpages provided. Output it in at most 3 paragraphs.
+Do not include introductory phrases or explanations; start directly with the relevant information.
+If the webpage does not load, simply say 'Fail to load the webpage content.' without additional sentences.
                 `
             },
             {
                 role: 'system',
                 content:
                 `
-                The user query:
-                <user query starts>
-                ${query}
-                <user query ends>
+The user query:
+<user query starts>
+${query}
+<user query ends>
 
-                The partial summaries:
-                ${summariesQuery}
+The partial summaries:
+${summariesQuery}
 
-                Your summary:
+Your summary:
                 `
             }
         ];

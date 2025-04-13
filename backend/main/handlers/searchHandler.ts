@@ -4,33 +4,25 @@ import { createJsonResponse, handleError } from './lambdaHandlerUtils';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
 import { ChatCompletionMessageParam } from 'openai/resources';
 
-
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    // Handle OPTIONS request for CORS preflight
     if (event.httpMethod === 'OPTIONS') {
         return createJsonResponse(200, {});
     }
-
     const query = event.queryStringParameters?.['q'];
     if (!query) {
         return createJsonResponse(400, { error: 'Missing search query string "q" e.g. "/search?q=apple".' });
     }
-
-    const { BING_API_KEY, OPEN_ROUTER_API_KEY } = process.env;
+    const { BING_API_KEY } = process.env;
     if (!BING_API_KEY) {
         console.error('Server configuration error: Missing BING_API_KEY.');
         return createJsonResponse(500, { error: 'Server configuration error (Bing).' });
     }
-    if (!OPEN_ROUTER_API_KEY) {
-         console.warn('Server configuration warning: Missing OPENROUTER_API_KEY. LLM Search features will be limited.');
-    }
 
     const searchService = new BingSearchService(BING_API_KEY);
-    // Use the same model as chatHandler for consistency, unless specified otherwise
-    // Constructor likely only takes model name; API key is read from process.env internally
-    const completor = OPEN_ROUTER_API_KEY ? new OpenRouterCompletor('google/gemini-2.0-flash-001') : null;
+    const completor = new OpenRouterCompletor('google/gemini-2.0-flash-001');
 
     try {
+        // Create alternative search queries
         let alternativeQueries: string[] = [];
         if (completor) {
             try {
@@ -46,8 +38,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                 alternativeQueries = llmResponse.split('\n').map(q => q.trim()).filter(q => q.length > 0);
                 console.log('Alternative queries generated:', alternativeQueries);
             } catch (llmError) {
-                console.error('Error generating alternative queries with LLM:', llmError);
                 // Proceed without alternative queries if LLM fails
+                console.error('Error generating alternative queries with LLM:', llmError);
             }
         }
 
@@ -61,7 +53,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         console.log('All Bing searches completed.');
 
         // Aggregate and deduplicate results
-        const aggregatedWebPages = new Map<string, WebPage>(); // Use URL as key for deduplication
+        const aggregatedWebPages = new Map<string, WebPage>(); // Use URL as key
 
         searchResults.forEach((result, index) => {
             const currentQuery = allQueries[index];
@@ -98,7 +90,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             return createJsonResponse(200, { searchResult: emptySearchResult });
         }
 
-        let rankedWebPages: WebPage[] = [...deduplicatedWebPages]; // Default to unranked if LLM fails or is disabled
+        // Default to unranked if LLM fails or is disabled
+        let rankedWebPages: WebPage[] = [...deduplicatedWebPages]; 
 
         if (completor && deduplicatedWebPages.length > 1) { // Only rank if there's something to rank and LLM is available
              try {
@@ -116,7 +109,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                  const rankedUrls = llmResponse.split('\n').map(url => url.trim()).filter(url => url.length > 0);
                  console.log('LLM ranked URLs:', rankedUrls);
 
-                 // Create a map for quick lookup
+                 // Map for URL
                  const pageMap = new Map(deduplicatedWebPages.map(page => [page.url, page]));
                  const newlyRankedPages: WebPage[] = [];
                  const seenUrls = new Set<string>();
@@ -138,12 +131,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                      if (!seenUrls.has(page.url)) { // Double-check if the URL is already seen
                          console.warn(`LLM missed ranking for URL: ${page.url}. Appending to end.`);
                          newlyRankedPages.push(page);
-                         seenUrls.add(page.url); // Mark as seen here too
+                         seenUrls.add(page.url);
                      }
                  });
 
                  if (newlyRankedPages.length === deduplicatedWebPages.length) {
-                    rankedWebPages = newlyRankedPages; // Use the LLM ranking if valid
+                    // Use the LLM ranking if valid
+                    rankedWebPages = newlyRankedPages; 
                     console.log('Successfully applied LLM re-ranking.');
                  } else {
                     console.error('LLM re-ranking resulted in a different number of results. Falling back to unranked.');
@@ -161,25 +155,21 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
 
         // Construct the final search result object using the (potentially) ranked pages
+        // Add dummy values to match Bing Search API structure
         const finalSearchResult: Partial<SearchResponse> = {
-             _type: "SearchResponse", // Indicate it's a search response
+             _type: "SearchResponse",
              webPages: {
-                 value: rankedWebPages, // Use the ranked list
-                 // Add other required fields from WebAnswer if necessary, potentially with default/dummy values
-                 id: "", // Placeholder
-                 someResultsRemoved: false, // Placeholder - Bing might indicate this, could try to preserve if needed
-                 totalEstimatedMatches: rankedWebPages.length, // Reflect the count of pages we're returning
-                 webSearchUrl: "" // Placeholder - Bing provides this, could try to preserve if needed
+                 value: rankedWebPages,
+                 id: "",
+                 someResultsRemoved: false,
+                 totalEstimatedMatches: rankedWebPages.length,
+                 webSearchUrl: ""
              },
-             // Add other required fields from SearchResponse if necessary
-             queryContext: { originalQuery: query, adultIntent: false, askUserForLocation: false }, // Placeholder - Bing provides this
-             rankingResponse: { mainline: { items: [] }, pole: { items: [] }, sidebar: { items: [] } } // Placeholder - Bing provides this, might be complex to reconstruct meaningfully
+             queryContext: { originalQuery: query, adultIntent: false, askUserForLocation: false },
+             rankingResponse: { mainline: { items: [] }, pole: { items: [] }, sidebar: { items: [] } }
         };
 
-        // Return the final result, potentially using a new key if frontend needs distinction
-        // Sticking with 'searchResult' for now for simplicity unless frontend requires 'rankedSearchResult'
         return createJsonResponse(200, { searchResult: finalSearchResult });
-
     } catch (e) {
         return handleError(e, 'Error during search processing');
     }

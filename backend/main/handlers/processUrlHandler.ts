@@ -4,16 +4,13 @@ import WebScraper from '../src/WebScraper';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
 import { createJsonResponse, handleError } from './lambdaHandlerUtils';
 
-// --- Handler for processing a single URL ---
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    // Handle OPTIONS request for CORS preflight
     if (event.httpMethod === 'OPTIONS') {
         return createJsonResponse(200, {});
     }
     if (event.httpMethod !== 'POST') {
          return createJsonResponse(405, { error: `Unsupported method: ${event.httpMethod}` });
     }
-
     if (!event.body) {
         return createJsonResponse(400, { error: 'Missing request body.' });
     }
@@ -31,9 +28,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         return handleError(e, 'Invalid request body');
     }
 
-    // Instantiate necessary services (Consider optimization/sharing if needed)
-    // TODO: Select completor based on env/config or request parameter
-    const completor = new OpenRouterCompletor('google/gemini-2.0-flash-lite-001');
+    const completor = new OpenRouterCompletor('google/gemini-2.0-flash-001');
     const partialSummarizer = new PartialSummarizer(completor);
     const scraper = new WebScraper();
 
@@ -43,7 +38,6 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
         if (!htmlContent) {
             console.warn(`Failed to scrape content from ${url}`);
-            // Return a specific indicator for failed scraping
             return createJsonResponse(200, { partialSummary: null, error: 'Failed to load webpage content.' });
         }
 

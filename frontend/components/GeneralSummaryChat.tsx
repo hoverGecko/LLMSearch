@@ -41,7 +41,7 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
     const [suggestedQueries, setSuggestedQueries] = useState<string[]>([]);
     const chatScrollViewRef = useRef<ScrollView>(null);
 
-
+    // Reset when query is changed
     useEffect(() => {
         console.log("Query changed, resetting general summary and chat state.");
         setGeneralSummary(null);
@@ -54,32 +54,29 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
         setSuggestedQueries([]); // Reset suggestions on query change
     }, [query]);
 
-    // Effect 2: Fetch GENERAL summary when conditions are met
+    // Fetch general summary when conditions are met
     useEffect(() => {
-        // Conditions to fetch: query exists, initial results are loaded, fetch not already triggered
         const shouldFetch = query && initialResults.length > 0 && !generalSummaryFetchTriggered.current;
 
         if (!shouldFetch) {
-             // Handle initial loading state before initialResults arrive
              if (query && initialResults.length === 0 && generalSummaryStatus === 'pending') {
                  console.log("Initial results not yet loaded, setting general summary to loading.");
                  setGeneralSummaryStatus('loading');
              }
-             // Handle case where initial search failed (indicated by detailedResults having errors)
              else if (query && initialResults.length === 0 && detailedResults.length > 0 && 
                 detailedResults.every(r => r.status === 'partial_error' || r.status === 'summary_error')) {
                  console.log("Initial search failed, setting general summary to error.");
                  setGeneralSummaryStatus('error');
                  setGeneralSummary('Failed to fetch initial results needed for summary.');
-                 generalSummaryFetchTriggered.current = true; // Prevent further attempts
+                 generalSummaryFetchTriggered.current = true;
              }
-            return; // Exit if conditions not met
+            return;
         }
 
         // Check if all initial top N results have finished processing (success or fail)
         const initialTopNIds = initialResults.slice(0, topN).map(r => r.id);
         const topNProcessed = detailedResults
-            .filter(dr => initialTopNIds.includes(dr.id)) // Only consider top N results
+            .filter(dr => initialTopNIds.includes(dr.id))  // Only consider top N results
             .every(r => r.status !== 'pending' && r.status !== 'partial_loading' && r.status !== 'summary_loading');
 
         if (topNProcessed && initialTopNIds.length > 0) {
@@ -87,12 +84,16 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
             if (!generalSummaryFetchTriggered.current) {
                 console.log('Top N results processed, triggering general summary generation.');
                 generalSummaryFetchTriggered.current = true; // Mark as triggered
-                setGeneralSummaryStatus('loading'); // Set loading state *before* fetch
+                setGeneralSummaryStatus('loading'); // Set loading state before fetch
 
-                // Collect partial summaries ONLY from the initial top N results that succeeded partially
+                // Collect partial summaries from the initial top N results that succeeded partially
                 const topNPartialSummaries = detailedResults
                     .filter(dr => initialTopNIds.includes(dr.id))
-                    .map(r => (r.status === 'summary_loading' || r.status === 'loaded' || r.status === 'summary_error') ? r.partialSummary : null); // Include partial even if final failed
+                    .map(r => (
+                        r.status === 'summary_loading' || 
+                        r.status === 'loaded' || 
+                        r.status === 'summary_error'
+                    ) ? r.partialSummary : null);
 
                 const postHeaders: HeadersInit = { 'Content-Type': 'application/json' };
                 if (apiKey) postHeaders['x-api-key'] = apiKey;
