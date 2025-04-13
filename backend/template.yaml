@@ -95,14 +95,14 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main/
-      Handler: handlers/searchHandler.handler # Updated path and assuming 'handler' export
+      Handler: handlers/searchHandler.handler
       Runtime: *nodejsRuntime
       Architectures:
         - *chromiumArch
       Layers:
         - !Ref ChromiumLayer
       Events:
-        SearchApi: # Renamed event logical ID
+        SearchApi:
           Type: Api
           Properties:
             RestApiId: !Ref ServerlessRestApi
@@ -119,19 +119,19 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - handlers/searchHandler.ts # Updated path
-        External:
-          - "@sparticuz/chromium"
+          - handlers/searchHandler.ts
 
   # Function to process a single URL (scrape + partial summary)
   ProcessUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main/
-      Handler: handlers/processUrlHandler.handler # Updated path and assuming 'handler' export
+      Handler: handlers/processUrlHandler.handler
       Runtime: *nodejsRuntime
       Architectures:
         - *chromiumArch
+      Layers:
+        - !Ref ChromiumLayer
       Events:
         ProcessUrlApi: # New event logical ID
           Type: Api
@@ -150,15 +150,16 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - handlers/processUrlHandler.ts # Updated path
-        # Removed External for this function as it doesn't directly use chromium
+          - handlers/processUrlHandler.ts
+        External:
+          - "@sparticuz/chromium"
 
   # Function to generate the GENERAL summary from partial summaries
   GenerateGeneralSummaryFunction: # Renamed Function
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main/
-      Handler: handlers/generateGeneralSummaryHandler.handler # Updated path
+      Handler: handlers/generateGeneralSummaryHandler.handler
       Runtime: *nodejsRuntime
       Architectures:
         - *chromiumArch
@@ -168,7 +169,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref ServerlessRestApi
-            Path: /generate-general-summary # Updated Path
+            Path: /generate-general-summary
             Method: post
             Auth:
               ApiKeyRequired: true
@@ -181,14 +182,14 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - handlers/generateGeneralSummaryHandler.ts # Updated path
+          - handlers/generateGeneralSummaryHandler.ts
 
   # Function to generate a single WEBPAGE summary
   GenerateWebpageSummaryFunction: # New Function
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main/
-      Handler: handlers/generateWebpageSummaryHandler.handler # Updated path
+      Handler: handlers/generateWebpageSummaryHandler.handler
       Runtime: *nodejsRuntime
       Architectures:
         - *chromiumArch
@@ -211,7 +212,7 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - handlers/generateWebpageSummaryHandler.ts # Updated path
+          - handlers/generateWebpageSummaryHandler.ts
 
   # Function to handle chat continuation
   ChatFunction:

@@ -8,7 +8,6 @@ export default class WebScraper {
     protected browserInstance: Browser | null = null;
     protected browserPromise: Promise<Browser> | null = null;
 
-    // --- Private Helper: Initialize Browser (only when needed) ---
     private async getBrowser(): Promise<Browser> {
         if (this.browserInstance) {
             return this.browserInstance;
@@ -21,16 +20,10 @@ export default class WebScraper {
         // Store the promise to prevent multiple launch attempts simultaneously
         this.browserPromise = new Promise(async (resolve, reject) => {
             try {
-                // Ensure Chromium is prepared (downloads if needed in non-Lambda env)
-                const executablePath = await chromium.executablePath(
-                   // Check if we are in AWS Lambda environment
-                   process.env.AWS_LAMBDA_FUNCTION_NAME
-                    ? '/opt/nodejs/node_modules/@sparticuz/chromium/bin' // Path within the Layer
-                    : undefined // Let chromium find it locally if not in Lambda
-                );
-
+                // check if chromium exists
+                const executablePath = await chromium.executablePath();
                 if (!executablePath) {
-                     throw new Error("Chromium executable path could not be found.");
+                     throw new Error("Chromium executable path could not be found by @sparticuz/chromium.");
                 }
 
                 const browser = await puppeteer.launch({
@@ -52,7 +45,6 @@ export default class WebScraper {
         return this.browserPromise;
     }
 
-    // --- Private Helper: Fast HTTP Fetch using Axios and Cheerio ---
     private async _fastFetch(url: string | URL, timeout: number): Promise<string | null> {
         console.log(`[Fast Fetch] Attempting for: ${url.toString()}`);
         try {
@@ -77,7 +69,6 @@ export default class WebScraper {
         }
     }
 
-    // --- Private Helper: Heuristic to check if content looks sufficient ---
     private _isContentSufficient(text: string | null | undefined): boolean {
         if (!text) return false;
 
@@ -102,7 +93,6 @@ export default class WebScraper {
         return true;
     }
 
-    // --- Private Helper: Extract Plain Text using Cheerio ---
     private _extractTextWithCheerio(html: string): string | null {
          try {
             const $ = cheerio.load(html);
@@ -117,8 +107,6 @@ export default class WebScraper {
          }
     }
 
-
-    // --- Private Helper: Heavy Fetch using Puppeteer ---
     private async _heavyFetch(url: string | URL, timeout: number): Promise<string | null> {
         console.log(`[Heavy Fetch] Using Puppeteer for: ${url.toString()}`);
         let page: Page | null = null;
@@ -232,8 +220,7 @@ export default class WebScraper {
     }
 
     /**
-     * Optional: Explicitly close the browser instance if it was created.
-     * Useful for cleanup at the end of a Lambda invocation if you keep the instance alive.
+     *  close the browser instance if created.
      */
     public async closeBrowser(): Promise<void> {
         if (this.browserInstance) {
@@ -244,35 +231,3 @@ export default class WebScraper {
         }
     }
 }
-
-// Example Usage (within an async function/context):
-/*
-const scraper = new WebScraper();
-
-async function runScrape() {
-    try {
-        const url1 = "https://httpbin.org/html"; // Simple static HTML
-        const url2 = "https://pptr.dev/";     // JS-heavy site
-
-        console.log("\n--- Scraping Static Site ---");
-        const text1 = await scraper.urlToPlainText(url1);
-        console.log("Result 1:", text1 ? text1.substring(0, 200) + '...' : 'null');
-
-        console.log("\n--- Scraping Dynamic Site ---");
-        const text2 = await scraper.urlToPlainText(url2);
-        console.log("Result 2:", text2 ? text2.substring(0, 200) + '...' : 'null');
-
-        console.log("\n--- Scraping Multiple ---");
-        const results = await scraper.urlsToPlainTexts([url1, url2]);
-        console.log("Multi Result 1:", results[0] ? results[0].substring(0, 100) + '...' : 'null');
-        console.log("Multi Result 2:", results[1] ? results[1].substring(0, 100) + '...' : 'null');
-
-    } catch (error) {
-        console.error("Scraping failed:", error);
-    } finally {
-        await scraper.closeBrowser(); // Close browser when done with the scraper instance
-    }
-}
-
-runScrape();
-*/

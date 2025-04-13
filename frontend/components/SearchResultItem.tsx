@@ -40,19 +40,18 @@ export interface InitialResult {
     snippet: string;
 }
 
-// --- Individual Search Result Component ---
 const SearchResultItem = memo((params: {
     initialResult: InitialResult;
     detailedResult: DetailedResult | undefined;
     isTopN: boolean;
-    onGenerateSummary: (id: string) => void;
+    onGenerateSummary: (url: string) => void;
     indicatorColor: string;
 }) => {
     const { initialResult, detailedResult, isTopN, onGenerateSummary, indicatorColor } = params;
     const [isExpanded, setIsExpanded] = useState(false);
 
     const handleGenerateClick = () => {
-        onGenerateSummary(initialResult.id);
+        onGenerateSummary(initialResult.url);
     };
 
     const handleExpandClick = () => {
@@ -156,7 +155,6 @@ const SearchResultItem = memo((params: {
 
 export default SearchResultItem;
 
-// Add the styles used by SearchResultItem
 const styles = StyleSheet.create({
     resultItemContainer: {
         marginBottom: 25, // Increased space between result items

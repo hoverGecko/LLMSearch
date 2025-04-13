@@ -21,6 +21,7 @@ interface GeneralSummaryProps {
     initialResults: InitialResult[];
     detailedResults: DetailedResult[];
     topN: number;
+    onSuggestionClick: (suggestion: string) => void;
 }
 
 const GeneralSummary: React.FC<GeneralSummaryProps> = ({
@@ -28,6 +29,7 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
     initialResults,
     detailedResults,
     topN,
+    onSuggestionClick,
 }) => {
     const [generalSummary, setGeneralSummary] = useState<string | null>(null);
     const [generalSummaryStatus, setGeneralSummaryStatus] = useState<GeneralSummaryStatus>('pending');
@@ -36,6 +38,7 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
     const [userQuery, setUserQuery] = useState<string>('');
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
     const [chatError, setChatError] = useState<string | null>(null);
+    const [suggestedQueries, setSuggestedQueries] = useState<string[]>([]);
     const chatScrollViewRef = useRef<ScrollView>(null);
 
 
@@ -48,6 +51,7 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
         setUserQuery('');
         setIsChatLoading(false);
         setChatError(null);
+        setSuggestedQueries([]); // Reset suggestions on query change
     }, [query]);
 
     // Effect 2: Fetch GENERAL summary when conditions are met
@@ -160,17 +164,21 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
             }
 
             const data = await response.json();
-            console.log('Chat response received.');
+            console.log('Chat response received:', data);
 
+            // Handle new response structure
             if (data.history && Array.isArray(data.history)) {
                 setChatHistory(data.history);
+                // Store suggestions if they exist
+                setSuggestedQueries(data.suggested_queries && Array.isArray(data.suggested_queries) ? data.suggested_queries : []);
                 setTimeout(() => chatScrollViewRef.current?.scrollToEnd({ animated: true }), 100);
             } else {
-                throw new Error("Invalid chat history format received from backend.");
+                throw new Error("Invalid chat response format received from backend.");
             }
 
         } catch (e: any) {
             console.error('Error processing chat request:', e);
+            setSuggestedQueries([]); // Clear suggestions on error
             setChatError(e.message || 'Failed to get chat response.');
         } finally {
             setIsChatLoading(false);
@@ -226,6 +234,24 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
                              <Text style={styles.errorText}>{chatError}</Text>
                          )}
                     </ScrollView>
+
+                    {suggestedQueries.length > 0 && (
+                        <View style={styles.suggestionsContainer}>
+                            <Text style={styles.suggestionsTitle}>Suggested searches:</Text>
+                            {suggestedQueries.map((suggestion, index) => (
+                                <Button
+                                    key={index}
+                                    mode="outlined"
+                                    onPress={() => onSuggestionClick(suggestion)}
+                                    style={styles.suggestionButton}
+                                    labelStyle={styles.suggestionButtonLabel}
+                                >
+                                    {suggestion}
+                                </Button>
+                            ))}
+                        </View>
+                    )}
+
                     <View style={styles.chatInputContainer}>
                         <TextInput
                             style={styles.chatInput}
@@ -295,6 +321,31 @@ const styles = StyleSheet.create({
     },
     assistantMessageText: {
         color: '#000000',
+    },
+    suggestionsContainer: {
+        marginTop: 10,
+        marginBottom: 5,
+        paddingTop: 5,
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        overflow: 'scroll'
+    },
+    suggestionsTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        marginBottom: 5,
+        color: '#666',
+    },
+    suggestionButton: {
+        marginBottom: 5,
+        borderColor: '#ccc', // Lighter border for suggestions
+    },
+    suggestionButtonLabel: {
+        fontSize: 13,
+        color: '#333', // Darker text for suggestions
     },
     chatInputContainer: {
         flexDirection: 'row',

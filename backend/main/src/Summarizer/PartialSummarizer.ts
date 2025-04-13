@@ -10,26 +10,21 @@ export default class PartialSummarizer {
                 role: 'system',
                 content:
                 `
-                Extract all information relevant to the user query from the provided webpage body text content. Output it in paragraphs.
-                Do not include introductory phrases or explanations; start directly with the relevant information. 
-                If the webpage does not load, simply say 'Fail to load the webpage content.' without additional sentences.
+Extract summarized information from the provided webpage body text content. Output it in paragraphs.
+Do not include introductory phrases or explanations; start directly with the relevant information. 
+If the webpage does not load, simply say 'Fail to load the webpage content.' without additional sentences.
                 `
             },
             {
                 role: 'system', 
                 content: 
                 `
-                The user query: 
-                <user query starts>
-                ${query}
-                <user query ends>
+The webpage body text: 
+<website body text starts>
+${text}
+<website body text ends>
 
-                The webpage body text: 
-                <website body text starts>
-                ${text}
-                <website body text ends>
-
-                Your summary:
+Your summary:
                 `
             }
         ]);

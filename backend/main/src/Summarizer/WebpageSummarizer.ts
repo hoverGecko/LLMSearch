@@ -9,26 +9,27 @@ export default class WebpageSummarizer {
                 role: 'system',
                 content:
                 `
-                Summarize the content of a webpage from the summary of the webpage. Output 4 sentences relevant to the user query.
-                Do not include introductory phrases or explanations; start directly with the relevant information. 
-                If the webpage does not load, simply say 'Fail to load the webpage content.' without additional sentences.
+Extract all information relevant to the user query from the provided webpage body text content. 
+Output at most 10 sentences relevant to the user query.
+Do not include introductory phrases or explanations; start directly with the relevant information. 
+If the webpage does not load, simply say 'Fail to load the webpage content.' without additional sentences.
                 `
             },
             {
                 role: 'system', 
                 content: 
                 `
-                The user query: 
-                <user query starts>
-                ${query}
-                <user query ends>
+The user query: 
+<user query starts>
+${query}
+<user query ends>
 
-                The partial summary: 
-                <partial summary starts>
-                ${partialSummary}
-                <partial summary ends>
+The partial summary: 
+<partial summary starts>
+${partialSummary}
+<partial summary ends>
 
-                Your summary:
+Your summary:
                 `
             }
         ]);

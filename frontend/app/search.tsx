@@ -1,6 +1,6 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, View } from 'react-native';
 import { backendUrl, apiKey } from '@/constants/Constants';
-import { Redirect, useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState, useCallback } from 'react';
 import { ThemedText } from '@/components/ThemedText';
 import SearchBar from '@/components/SearchBar';
@@ -12,13 +12,13 @@ import GeneralSummaryChat from '@/components/GeneralSummaryChat';
 
 type SearchResultStatus = 'pending' | 'loading' | 'loaded' | 'error';
 
-// --- Main Search Screen Component ---
 export default function SearchScreen() {
+    const router = useRouter();
     const backgroundColor = useThemeColor({}, 'background');
     const tintColor = useThemeColor({}, 'tint') || "lightblue"; // Use 'tint' for the accent color
     const params = useLocalSearchParams<{ q: string }>();
     const query = params.q;
-    const topN = 3; // Define how many results to process automatically
+    const topN = 5; // Define how many results to process automatically
 
     const [initialResults, setInitialResults] = useState<InitialResult[]>([]);
     const [detailedResults, setDetailedResults] = useState<DetailedResult[]>([]);
@@ -26,7 +26,6 @@ export default function SearchScreen() {
 
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
-    // --- Effect 1: Fetch initial search results ---
     useEffect(() => {
         if (!query) return;
 
@@ -70,33 +69,32 @@ export default function SearchScreen() {
             });
     }, [query, topN]);
 
-    // --- Function to trigger summary generation for a specific item ---
-    const handleGenerateSummary = useCallback((id: string) => {
-        // Check if already processing/processed
-        if (detailedResults.some(dr => dr.id === id)) {
-            console.log(`Summary generation already initiated or completed for ${id}`);
+    const handleGenerateSummary = useCallback((url: string) => {
+        // Check if already processing/processed using URL
+        if (detailedResults.some(dr => dr.url === url)) {
+            console.log(`Summary generation already initiated or completed for ${url}`);
             return;
         }
 
-        const resultToAdd = initialResults.find(ir => ir.id === id);
+        // Find the corresponding initial result using URL
+        const resultToAdd = initialResults.find(ir => ir.url === url);
         if (resultToAdd) {
-            console.log(`Adding result ${id} to detailed processing queue.`);
+            console.log(`Adding result for ${url} to detailed processing queue.`);
             setDetailedResults(prev => [
                 ...prev,
-                {
-                    id: resultToAdd.id,
-            name: resultToAdd.name,
-            url: resultToAdd.url,
-            snippet: resultToAdd.snippet,
+                { // Keep the original id from Bing, but use URL for matching logic
+                    id: resultToAdd.id, // Keep original id
+                    name: resultToAdd.name,
+                    url: resultToAdd.url, // url is the key identifier now
+                    snippet: resultToAdd.snippet,
             status: 'pending', // Use imported type
-            partialSummary: null,
-            webpageSummary: null,
+                    partialSummary: null,
+                    webpageSummary: null,
                 }
             ]);
         }
-    }, [initialResults, detailedResults]); // Dependencies for the callback
+    }, [initialResults, detailedResults]); // Dependencies for the callback - initialResults needed for find
 
-    // --- Effect 2: Process individual URLs present in detailedResults ---
     useEffect(() => {
         if (!query || detailedResults.length === 0) return;
 
@@ -106,15 +104,14 @@ export default function SearchScreen() {
         if (pendingResults.length === 0) return; // No pending results to process
         pendingResults.forEach((result) => {
             console.log(`Processing URL: ${result.url}`);
-            // Update status to 'partial_loading' immediately for this specific item
+            // Update status to 'partial_loading' immediately for this specific item using URL matching
             setDetailedResults(prev => prev.map(item =>
-                item.id === result.id ? { ...item, status: 'partial_loading' } : item // Use imported type
+                item.url === result.url ? { ...item, status: 'partial_loading' } : item
             ));
 
             const commonPostHeaders: HeadersInit = { 'Content-Type': 'application/json' };
             if (apiKey) commonPostHeaders['x-api-key'] = apiKey;
 
-            // --- Fetch Partial Summary ---
             fetch(`${backendUrl}/process-url`, {
                 method: 'POST',
                 headers: commonPostHeaders,
@@ -130,18 +127,19 @@ export default function SearchScreen() {
 
                 if (!partialSummary) {
                     console.warn(`Partial summary failed for ${result.url}: ${partialError}`);
+                    // Update status using URL matching
                     setDetailedResults(prev => prev.map(item =>
-                        item.id === result.id ? { ...item, status: 'partial_error', error: partialError || 'Failed to load content' } : item
+                        item.url === result.url ? { ...item, status: 'partial_error', error: partialError || 'Failed to load content' } : item
                     ));
                     return;
                 }
 
                 console.log(`Partial summary received for ${result.url}, fetching final summary...`);
+                 // Update status and store partial summary using URL matching
                 setDetailedResults(prev => prev.map(item =>
-                    item.id === result.id ? { ...item, status: 'summary_loading', partialSummary: partialSummary } : item
+                    item.url === result.url ? { ...item, status: 'summary_loading', partialSummary: partialSummary } : item
                 ));
 
-                // --- Fetch Final Webpage Summary ---
                 fetch(`${backendUrl}/generate-webpage-summary`, {
                     method: 'POST',
                     headers: commonPostHeaders,
@@ -153,8 +151,9 @@ export default function SearchScreen() {
                 })
                 .then(summaryData => {
                     console.log(`Final webpage summary received for ${result.url}`);
+                    // Update status and store final summary using URL matching
                     setDetailedResults(prev => prev.map(item =>
-                        item.id === result.id ? {
+                        item.url === result.url ? {
                             ...item,
                             status: 'loaded',
                             webpageSummary: summaryData.webpageSummary
@@ -163,15 +162,17 @@ export default function SearchScreen() {
                 })
                 .catch(e => {
                     console.error(`Error fetching final webpage summary for ${result.url}:`, e);
+                     // Update status using URL matching
                     setDetailedResults(prev => prev.map(item =>
-                        item.id === result.id ? { ...item, status: 'summary_error', error: e.message } : item
+                        item.url === result.url ? { ...item, status: 'summary_error', error: e.message } : item
                     ));
                 });
             })
             .catch(e => {
                 console.error(`Error fetching partial summary for ${result.url}:`, e);
+                 // Update status using URL matching
                 setDetailedResults(prev => prev.map(item =>
-                    item.id === result.id ? { ...item, status: 'partial_error', error: e.message } : item
+                    item.url === result.url ? { ...item, status: 'partial_error', error: e.message } : item
                 ));
             });
         });
@@ -180,6 +181,11 @@ export default function SearchScreen() {
     if (!query) {
         return <Redirect href='/' />;
     }
+
+    const handleSuggestionSearch = useCallback((suggestion: string) => {
+        console.log(`Navigating to new search for suggestion: ${suggestion}`);
+        router.push(`/search?q=${encodeURIComponent(suggestion)}`);
+    }, [router]);
 
     const isLoadingInitial = initialResults.length === 0 && searchResultStatus === 'pending'; // Loading initial /search
 
@@ -195,6 +201,7 @@ export default function SearchScreen() {
                 initialResults={initialResults}
                 detailedResults={detailedResults}
                 topN={topN}
+                onSuggestionClick={handleSuggestionSearch} // Pass the callback
             />
             <ResultContainer
                 title="Results"
@@ -202,15 +209,17 @@ export default function SearchScreen() {
                 loading={!initialResults.length}
             >
                 {initialResults.map((initialRes, index) => {
-                    const detailedRes = detailedResults.find(dr => dr.id === initialRes.id);
+                    // Find detailed result using URL
+                    const detailedRes = detailedResults.find(dr => dr.url === initialRes.url);
                     const isTopNItem = index < topN;
                     return (
                         <SearchResultItem
-                            key={initialRes.id}
+                            key={initialRes.url} // Use URL as the key, guaranteed unique by backend deduplication
                             initialResult={initialRes}
                             detailedResult={detailedRes}
                             isTopN={isTopNItem}
-                            onGenerateSummary={handleGenerateSummary}
+                            // Pass URL to the handler
+                            onGenerateSummary={() => handleGenerateSummary(initialRes.url)}
                             indicatorColor={tintColor}
                         />
                     );
@@ -238,7 +247,7 @@ const styles = StyleSheet.create({
         gap: 8,
         marginBottom: 10, // Add some space below title
     },
-    resultContent: { 
+    resultContent: {
         fontSize: 14,
         lineHeight: 20,
     },
