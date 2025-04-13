@@ -1,6 +1,7 @@
 import React, { PropsWithChildren } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
+import LoadingIndicator from './LoadingIndicator';
 
 /**
  * Container with a title and React elements as content. 
@@ -14,16 +15,19 @@ import { Text, Surface } from 'react-native-paper';
 const ResultContainer = ({
     title,
     children,
-    loaded = false, // Default to not loaded
+    loaded = false,
     loading = false,
     error = false
 }: PropsWithChildren<{ title: string; loaded?: boolean; loading?: boolean; error?: boolean }>) => {
+    const hasChildren = React.Children.count(children) > 0;
+
     return (
         <Surface style={styles.container}>
             <Text style={styles.title}>{title}</Text>
+            {/* Show internal spinner only if loading and no children are provided */}
             {loading ? (
                 <View style={styles.statusContainer}>
-                    <ActivityIndicator size="large" />
+                    <LoadingIndicator />
                 </View>
             ) : error ? (
                 <View style={styles.statusContainer}>

@@ -2,27 +2,42 @@ import { useState } from "react";
 import { ThemedView } from "./ThemedView";
 import { StyleProp, StyleSheet, ViewStyle } from "react-native";
 import { ThemedText } from "./ThemedText";
-import { Link } from "expo-router";
-import { Searchbar } from "react-native-paper";
+import { Link, useRouter } from "expo-router";
+import { Button, Searchbar } from "react-native-paper";
 
 const SearchBar = (params: {value?: string, style?: StyleProp<ViewStyle>}) => {
   const [query, setQuery] = useState(params.value ?? '');
+  const router = useRouter();
+
+  const handleSearch = () => {
+    if (query) {
+      router.push({
+        pathname: "/search",
+        params: { q: query },
+      });
+    }
+  };
+
   return (
     <ThemedView style={params.style ?? styles.view}>
-      <Searchbar icon={require("../assets/images/search.svg")} clearIcon={require("../assets/images/close.svg")} style={styles.searchBar} value={query} onChangeText={setQuery} />
-      {query ? (
-        <Link
-          href={{
-            pathname: "/search",
-            params: { q: query },
-          }}
-          push
-        >
-          <ThemedText>Search</ThemedText>
-        </Link>
-      ) : (
-        <ThemedText style={{ color: "grey" }}>Search</ThemedText>
-      )}
+      <Searchbar 
+        icon={require("../assets/images/search.svg")} 
+        clearIcon={require("../assets/images/close.svg")} 
+        style={styles.searchBar} 
+        value={query} 
+        onChangeText={setQuery}
+        onSubmitEditing={handleSearch}
+      />
+      <Button
+        mode="contained"
+        onPress={handleSearch}
+        style={styles.searchButton}
+        contentStyle={styles.searchButtonContent}
+        disabled={!query}
+        textColor="black"
+      >
+        Search
+      </Button>
     </ThemedView>
   );
 };
@@ -36,6 +51,14 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flexGrow: 1
+  },
+  searchButton: {
+    backgroundColor: '#E0E0E0',
+    borderRadius: 20
+  },
+  searchButtonContent: {
+    height: 50,
+    paddingHorizontal: 5
   }
 });
 

@@ -1,14 +1,15 @@
 import { StyleSheet, View, Platform } from 'react-native';
 import { backendUrl, apiKey } from '@/constants/Constants';
 import { Redirect, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { ThemedText } from '@/components/ThemedText';
 import SearchBar from '@/components/SearchBar';
-import Animated, { useAnimatedRef } from 'react-native-reanimated';
+import Animated, { useAnimatedRef, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { ExternalLink } from '@/components/ExternalLink';
 import ResultContainer from '@/components/ResultContainer';
-import { ActivityIndicator, Text } from 'react-native-paper';
+import { Text, Button, Chip } from 'react-native-paper';
+import LoadingIndicator from '@/components/LoadingIndicator';
 
 // Define types for better state management
 // pending: Initial state
@@ -25,264 +26,371 @@ interface DetailedResult {
     id: string;
     name: string;
     url: string;
+    snippet?: string; // Add snippet from initial Bing result
     status: ResultStatus;
-    partialSummary: string | null; // Still store partial summary internally
-    finalSummary: string | null; // Stores the final webpage-specific summary
-    error?: string; // Store error messages
+    partialSummary: string | null;
+    finalSummary: string | null;
+    error?: string;
+}
+
+// Interface for the initial Bing result structure (adjust based on actual API response)
+interface InitialResult {
+    id: string;
+    name: string;
+    url: string;
+    snippet: string; // Assuming Bing provides a snippet
+    // Add other fields from Bing if needed
 }
 
 // --- Individual Search Result Component ---
-const SearchResultItem = (params: { result: DetailedResult }) => {
-    const { result } = params;
+const SearchResultItem = memo((params: { // Use memo directly
+    initialResult: InitialResult;
+    detailedResult: DetailedResult | undefined;
+    isTopN: boolean;
+    onGenerateSummary: (id: string) => void;
+    indicatorColor: string;
+}) => {
+    const { initialResult, detailedResult, isTopN, onGenerateSummary, indicatorColor } = params;
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    const handleGenerateClick = () => {
+        onGenerateSummary(initialResult.id);
+    };
+
+    const handleExpandClick = () => {
+        setIsExpanded(!isExpanded);
+    };
+
+    const status = detailedResult?.status;
+    const finalSummary = detailedResult?.finalSummary;
+    const error = detailedResult?.error;
+
     return (
         <View style={styles.resultItemContainer}>
-            {/* Link and URL remain the same */}
-            <ExternalLink style={styles.resultTitle} href={result.url}>{result.name}</ExternalLink>
-            <ExternalLink style={styles.resultUrl} href={result.url}>{result.url}</ExternalLink>
+            <View style={styles.resultHeader}>
+                <ExternalLink style={styles.resultTitle} href={initialResult.url}>{initialResult.name}</ExternalLink>
+                {!isTopN && !detailedResult && ( // Show indicator only if not top N AND not yet processed
+                     <Chip icon="information" style={styles.indicatorChip} textStyle={styles.indicatorChipText}>Bing summary</Chip>
+                )}
+            </View>
+            <ExternalLink style={styles.resultUrl} href={initialResult.url}>{initialResult.url}</ExternalLink>
 
             <View style={styles.summaryContainer}>
-                {/* Show loading indicator during both partial and final summary fetching */}
-                {(result.status === 'partial_loading' || result.status === 'summary_loading') && (
-                    <ActivityIndicator animating={true} size="small" style={styles.loadingIndicator} />
+                {/* Loading Indicator */}
+                {(status === 'partial_loading' || status === 'summary_loading') && (
+                    <LoadingIndicator />
                 )}
-                {/* Show final summary only when fully loaded */}
-                {result.status === 'loaded' && result.finalSummary && (
-                    <ThemedText style={styles.resultContent} numberOfLines={10}>
-                        {result.finalSummary}
-                    </ThemedText>
+
+                {/* Final Summary (Loaded) */}
+                {status === 'loaded' && finalSummary && (
+                    <>
+                        {/* Final Summary Text (potentially truncated) */}
+                        <ThemedText style={styles.resultContent} numberOfLines={isTopN && !isExpanded ? 5 : undefined}>
+                            {finalSummary}
+                        </ThemedText>
+
+                        {/* Partial Summary (shown when expanded) - Wrap with Animated.View */}
+                        {isExpanded && detailedResult?.partialSummary && (
+                             <Animated.View
+                                style={styles.partialSummarySection}
+                                entering={FadeIn.duration(250)}
+                                exiting={FadeOut.duration(250)}
+                             >
+                                <Text style={styles.partialSummaryTitle}>Detailed Summary:</Text>
+                                <ThemedText style={[styles.resultContent, styles.partialSummaryText]}>
+                                    {detailedResult.partialSummary}
+                                </ThemedText>
+                             </Animated.View>
+                        )}
+
+                        {/* Show expand/collapse button for ANY item with a final summary */}
+                        {finalSummary && ( // Only check if finalSummary exists
+                            <Button
+                                mode="contained-tonal" // Match Generate Summary style
+                                onPress={handleExpandClick}
+                                style={styles.actionButton}
+                                labelStyle={styles.actionButtonLabel}
+                                icon={isExpanded ? 'chevron-up' : 'chevron-down'} // Add conditional icon
+                            >
+                                {isExpanded ? 'Show Less' : 'Show More'}
+                            </Button>
+                        )}
+                    </>
                 )}
-                 {/* Show error message if either step failed */}
-                 {(result.status === 'partial_error' || result.status === 'summary_error') && (
+
+                {/* Error Message */}
+                {(status === 'partial_error' || status === 'summary_error') && (
                     <ThemedText style={[styles.resultContent, styles.errorText]}>
-                        Error: {result.error || 'Failed to load summary.'}
+                        Error: {error || 'Failed to load summary.'}
                     </ThemedText>
                 )}
-                 {/* Show placeholder if loaded but summary is empty/null */}
-                 {result.status === 'loaded' && !result.finalSummary && (
+
+                {/* Placeholder for Loaded but Empty Summary */}
+                {status === 'loaded' && !finalSummary && (
                      <ThemedText style={[styles.resultContent, styles.placeholderText]}>
                         Could not generate summary for this page.
                     </ThemedText>
                  )}
-                 {/* 'pending' state shows nothing */}
+
+                 {/* Initial State: Show Snippet or Generate Button */}
+                 {!status || status === 'pending' ? ( // If no detailed result or it's pending
+                    <>
+                        <ThemedText style={[styles.resultContent, styles.snippetText]}>
+                            {initialResult.snippet}
+                        </ThemedText>
+                        {!isTopN && ( // Show generate button only for non-top-N items
+                            <Button
+                                mode="contained-tonal" // Or "outlined" or "text"
+                                onPress={handleGenerateClick}
+                                style={styles.actionButton}
+                                labelStyle={styles.actionButtonLabel}
+                                icon="text-box-search-outline" // Example icon
+                            >
+                                Generate Summary
+                            </Button>
+                        )}
+                    </>
+                 ) : null}
             </View>
         </View>
     );
-}
+});
 
 // --- Main Search Screen Component ---
 export default function SearchScreen() {
     const backgroundColor = useThemeColor({}, 'background');
+    const tintColor = useThemeColor({}, 'tint') || "lightblue"; // Use 'tint' for the accent color
     const params = useLocalSearchParams<{ q: string }>();
     const query = params.q;
+    const topN = 3; // Define how many results to process automatically
 
-    const [initialResults, setInitialResults] = useState<any[]>([]);
+    const [initialResults, setInitialResults] = useState<InitialResult[]>([]); // Use specific type
     const [detailedResults, setDetailedResults] = useState<DetailedResult[]>([]);
     const [generalSummary, setGeneralSummary] = useState<string | null>(null);
-    const [generalSummaryStatus, setGeneralSummaryStatus] = useState<GeneralSummaryStatus>('pending'); // Use specific type
+    const [generalSummaryStatus, setGeneralSummaryStatus] = useState<GeneralSummaryStatus>('pending');
 
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
-    const generalSummaryFetchTriggered = useRef(false); // Use ref to track if general summary fetch has started
+    const generalSummaryFetchTriggered = useRef(false);
 
     // --- Effect 1: Fetch initial search results ---
     useEffect(() => {
         if (!query) return;
 
-        // Reset state for new query
         setInitialResults([]);
         setDetailedResults([]);
         setGeneralSummary(null);
         setGeneralSummaryStatus('pending');
-        generalSummaryFetchTriggered.current = false; // Reset trigger
+        generalSummaryFetchTriggered.current = false;
 
         const headers: HeadersInit = {};
-        if (apiKey) {
-            headers['x-api-key'] = apiKey;
-        } else if (Platform.OS !== 'web') { // Don't warn excessively on web during local dev if key is missing
-             console.warn('API Key is missing, requests to deployed backend will fail.');
-        }
-
+        if (apiKey) headers['x-api-key'] = apiKey;
+        else if (Platform.OS !== 'web') console.warn('API Key missing.');
 
         console.log(`Fetching initial results for query: ${query}`);
+        setGeneralSummaryStatus('loading'); // Set loading state immediately
         fetch(`${backendUrl}/search?${new URLSearchParams({ q: query })}`, { headers })
             .then(res => {
                 if (!res.ok) {
-                    // Log more details on failure
-                    console.error(`Search API failed with status ${res.status}`, res);
-                    throw new Error(`Search API failed with status ${res.status}`);
+                     setGeneralSummaryStatus('error'); // Set error if fetch fails
+                     throw new Error(`Search API failed (${res.status})`);
                 }
                 return res.json();
             })
             .then(apiResult => {
-                const results = apiResult.searchResult?.webPages?.value || [];
+                const results: InitialResult[] = apiResult.searchResult?.webPages?.value || [];
                 console.log(`Received ${results.length} initial results.`);
                 setInitialResults(results);
-                // Initialize detailed results state
-                const topN = 3; // Process top 3 results
-                setDetailedResults(results.slice(0, topN).map((r: any) => ({
+
+                // Initialize detailed results state ONLY for top N
+                setDetailedResults(results.slice(0, topN).map(r => ({
                     id: r.id,
                     name: r.name,
                     url: r.url,
-                    status: 'pending', // Start as pending
+                    snippet: r.snippet,
+                    status: 'pending',
                     partialSummary: null,
                     finalSummary: null,
                 })));
             })
             .catch(e => {
                 console.error('Error fetching initial search results:', e);
-                // Handle error state appropriately (e.g., show error message)
-                setGeneralSummaryStatus('error'); // Indicate overall error
+                setGeneralSummaryStatus('error'); // Indicate overall error if search fails
             });
-    }, [query]); // Rerun only when query changes
+    }, [query, topN]);
 
-    // --- Effect 2: Process individual URLs ---
+    // --- Function to trigger summary generation for a specific item ---
+    const handleGenerateSummary = useCallback((id: string) => {
+        // Check if already processing/processed
+        if (detailedResults.some(dr => dr.id === id)) {
+            console.log(`Summary generation already initiated or completed for ${id}`);
+            return;
+        }
+
+        const resultToAdd = initialResults.find(ir => ir.id === id);
+        if (resultToAdd) {
+            console.log(`Adding result ${id} to detailed processing queue.`);
+            setDetailedResults(prev => [
+                ...prev,
+                {
+                    id: resultToAdd.id,
+                    name: resultToAdd.name,
+                    url: resultToAdd.url,
+                    snippet: resultToAdd.snippet,
+                    status: 'pending', // Start processing
+                    partialSummary: null,
+                    finalSummary: null,
+                }
+            ]);
+        }
+    }, [initialResults, detailedResults]); // Dependencies for the callback
+
+    // --- Effect 2: Process individual URLs present in detailedResults ---
     useEffect(() => {
         if (!query || detailedResults.length === 0) return;
 
-        detailedResults.forEach((result, index) => {
-            // Only process if status is 'pending'
-            if (result.status === 'pending') {
-                // --- Show General Summary loading spinner early ---
-                // If this is the first item being processed, set general summary to loading
-                if (index === 0 && generalSummaryStatus === 'pending') {
-                    setGeneralSummaryStatus('loading');
-                }
-                // --- End early spinner logic ---
+        // Find results that are 'pending' and process them
+        const pendingResults = detailedResults.filter(r => r.status === 'pending');
 
-                console.log(`Processing URL ${index + 1}: ${result.url}`);
-                // Update status to 'loading' immediately
+        if (pendingResults.length === 0) return; // No pending results to process
+
+        // --- Early spinner logic removed, handled in Effect 1 ---
+
+
+        pendingResults.forEach((result) => {
+            console.log(`Processing URL: ${result.url}`);
+            // Update status to 'partial_loading' immediately for this specific item
+            setDetailedResults(prev => prev.map(item =>
+                item.id === result.id ? { ...item, status: 'partial_loading' } : item
+            ));
+
+            const commonPostHeaders: HeadersInit = { 'Content-Type': 'application/json' };
+            if (apiKey) commonPostHeaders['x-api-key'] = apiKey;
+
+            // --- Fetch Partial Summary ---
+            fetch(`${backendUrl}/process-url`, {
+                method: 'POST',
+                headers: commonPostHeaders,
+                body: JSON.stringify({ url: result.url, query: query }),
+            })
+            .then(res => {
+                if (!res.ok) throw new Error(`Partial summary fetch failed (${res.status})`);
+                return res.json();
+            })
+            .then(partialData => {
+                const partialSummary = partialData.partialSummary;
+                const partialError = partialData.error;
+
+                if (!partialSummary) {
+                    console.warn(`Partial summary failed for ${result.url}: ${partialError}`);
+                    setDetailedResults(prev => prev.map(item =>
+                        item.id === result.id ? { ...item, status: 'partial_error', error: partialError || 'Failed to load content' } : item
+                    ));
+                    return;
+                }
+
+                console.log(`Partial summary received for ${result.url}, fetching final summary...`);
                 setDetailedResults(prev => prev.map(item =>
-                    item.id === result.id ? { ...item, status: 'partial_loading' } : item // Update status
+                    item.id === result.id ? { ...item, status: 'summary_loading', partialSummary: partialSummary } : item
                 ));
 
-                // Prepare headers for POST request (common for both)
-                const commonPostHeaders: HeadersInit = { 'Content-Type': 'application/json' };
-                if (apiKey) { commonPostHeaders['x-api-key'] = apiKey; }
-
-                // --- Fetch Partial Summary ---
-                fetch(`${backendUrl}/process-url`, {
+                // --- Fetch Final Webpage Summary ---
+                fetch(`${backendUrl}/generate-webpage-summary`, {
                     method: 'POST',
                     headers: commonPostHeaders,
-                    body: JSON.stringify({ url: result.url, query: query }),
+                    body: JSON.stringify({ query: query, partialSummary: partialSummary }),
                 })
                 .then(res => {
-                    if (!res.ok) { throw new Error(`Partial summary fetch failed (${res.status})`); }
+                    if (!res.ok) throw new Error(`Webpage summary fetch failed (${res.status})`);
                     return res.json();
                 })
-                .then(partialData => {
-                    const partialSummary = partialData.partialSummary;
-                    const partialError = partialData.error;
-
-                    if (!partialSummary) {
-                        // If partial summary failed, mark error and stop for this item
-                        console.warn(`Partial summary failed for ${result.url}: ${partialError}`);
-                        setDetailedResults(prev => prev.map(item =>
-                            item.id === result.id ? { ...item, status: 'partial_error', error: partialError || 'Failed to load content' } : item
-                        ));
-                        return; // Don't proceed to fetch final summary
-                    }
-
-                    // Partial summary success - update state and immediately fetch final summary
-                    console.log(`Partial summary received for ${result.url}, fetching final summary...`);
+                .then(summaryData => {
+                    console.log(`Final webpage summary received for ${result.url}`);
                     setDetailedResults(prev => prev.map(item =>
-                        item.id === result.id ? { ...item, status: 'summary_loading', partialSummary: partialSummary } : item
+                        item.id === result.id ? {
+                            ...item,
+                            status: 'loaded',
+                            finalSummary: summaryData.webpageSummary
+                        } : item
                     ));
-
-                    // --- Fetch Final Webpage Summary ---
-                    fetch(`${backendUrl}/generate-webpage-summary`, { // New endpoint
-                        method: 'POST',
-                        headers: commonPostHeaders,
-                        body: JSON.stringify({ query: query, partialSummary: partialSummary }), // Send single partial summary
-                    })
-                    .then(res => {
-                        if (!res.ok) { throw new Error(`Webpage summary fetch failed (${res.status})`); }
-                        return res.json();
-                    })
-                    .then(summaryData => {
-                        console.log(`Final webpage summary received for ${result.url}`);
-                        setDetailedResults(prev => prev.map(item =>
-                            item.id === result.id ? {
-                                ...item,
-                                status: 'loaded', // Final success state
-                                finalSummary: summaryData.webpageSummary // Store final summary
-                            } : item
-                        ));
-                    })
-                    .catch(e => {
-                        // Handle error fetching final summary
-                        console.error(`Error fetching final webpage summary for ${result.url}:`, e);
-                        setDetailedResults(prev => prev.map(item =>
-                            item.id === result.id ? { ...item, status: 'summary_error', error: e.message } : item
-                        ));
-                    });
                 })
                 .catch(e => {
-                    // Handle error fetching partial summary
-                    console.error(`Error fetching partial summary for ${result.url}:`, e);
+                    console.error(`Error fetching final webpage summary for ${result.url}:`, e);
                     setDetailedResults(prev => prev.map(item =>
-                        item.id === result.id ? { ...item, status: 'partial_error', error: e.message } : item
+                        item.id === result.id ? { ...item, status: 'summary_error', error: e.message } : item
                     ));
                 });
-            }
+            })
+            .catch(e => {
+                console.error(`Error fetching partial summary for ${result.url}:`, e);
+                setDetailedResults(prev => prev.map(item =>
+                    item.id === result.id ? { ...item, status: 'partial_error', error: e.message } : item
+                ));
+            });
         });
-    }, [query, detailedResults]); // Dependencies remain the same
+    }, [query, detailedResults, generalSummaryStatus, topN]); // Rerun when query or detailedResults changes
 
     // --- Effect 3: Generate GENERAL summary ---
     useEffect(() => {
-        // Check if already triggered or no results
+        // Only trigger if query exists, we have detailed results, and haven't triggered yet
         if (!query || detailedResults.length === 0 || generalSummaryFetchTriggered.current) {
             return;
         }
 
-        // Check if all results have at least finished the partial summary step (success or fail)
-        const allPartialsProcessed = detailedResults.every(r =>
-            r.status !== 'pending' && r.status !== 'partial_loading'
-        );
+        // Check if all *initial top N* results have finished processing (success or fail)
+        const initialTopNIds = initialResults.slice(0, topN).map(r => r.id);
+        const topNProcessed = detailedResults
+            .filter(dr => initialTopNIds.includes(dr.id)) // Only consider top N results
+            .every(r => r.status !== 'pending' && r.status !== 'partial_loading' && r.status !== 'summary_loading');
 
-        if (allPartialsProcessed) {
-            console.log('All partial summaries processed, triggering general summary generation.');
-            generalSummaryFetchTriggered.current = true; // Set trigger flag
-            // No need to set loading here, it was set earlier in Effect 2
-            // setGeneralSummaryStatus('loading');
 
-            // Collect partial summaries (use null for those that failed)
-            const partialSummaries = detailedResults.map(r => r.partialSummary);
+        if (topNProcessed && initialTopNIds.length > 0) { // Ensure topN is > 0
+             // Check if general summary status is still 'pending' or 'loading'
+             // It might have been set to 'error' earlier if the initial search failed
+             if (generalSummaryStatus === 'pending' || generalSummaryStatus === 'loading') {
+                console.log('Top N results processed, triggering general summary generation.');
+                generalSummaryFetchTriggered.current = true;
+                setGeneralSummaryStatus('loading'); // Ensure it's loading now
 
-            // Prepare headers
-            const postHeaders: HeadersInit = { 'Content-Type': 'application/json' };
-            if (apiKey) { postHeaders['x-api-key'] = apiKey; }
+                // Collect partial summaries ONLY from the initial top N results that succeeded partially
+                const topNPartialSummaries = detailedResults
+                    .filter(dr => initialTopNIds.includes(dr.id))
+                    .map(r => (r.status === 'summary_loading' || r.status === 'loaded' || r.status === 'summary_error') ? r.partialSummary : null); // Include partial even if final failed
 
-            // Fetch General Summary
-            fetch(`${backendUrl}/generate-general-summary`, { // New endpoint
-                method: 'POST',
-                headers: postHeaders,
-                body: JSON.stringify({ query: query, partialSummaries: partialSummaries }),
-            })
-            .then(res => {
-                 if (!res.ok) {
-                    console.error(`General Summary API failed with status ${res.status}`, res);
-                    throw new Error(`General Summary API failed with status ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                console.log('Final summaries received.');
-                setGeneralSummary(data.generalSummary);
-                setGeneralSummaryStatus('loaded');
-                // BUG FIX: Remove the incorrect update to detailedResults here
-                // finalSummary is correctly set in Effect 2
-            })
-            .catch(e => {
-                console.error('Error generating general summary:', e); // Corrected error message context
-                setGeneralSummary('Error generating final summary.');
-                setGeneralSummaryStatus('error');
-            });
+                const postHeaders: HeadersInit = { 'Content-Type': 'application/json' };
+                if (apiKey) postHeaders['x-api-key'] = apiKey;
+
+                fetch(`${backendUrl}/generate-general-summary`, {
+                    method: 'POST',
+                    headers: postHeaders,
+                    body: JSON.stringify({ query: query, partialSummaries: topNPartialSummaries }),
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error(`General Summary API failed (${res.status})`);
+                    return res.json();
+                })
+                .then(data => {
+                    console.log('General summary received.');
+                    setGeneralSummary(data.generalSummary);
+                    setGeneralSummaryStatus('loaded');
+                })
+                .catch(e => {
+                    console.error('Error generating general summary:', e);
+                    setGeneralSummary('Error generating general summary.');
+                    setGeneralSummaryStatus('error');
+                });
+            } else {
+                 console.log("General summary generation skipped as status is already 'loaded' or 'error'.");
+                 generalSummaryFetchTriggered.current = true; // Still mark as triggered to prevent re-attempts
+            }
         }
-    }, [query, detailedResults]); // Rerun when query or detailedResults content changes
+    }, [query, initialResults, detailedResults, generalSummaryStatus, topN]); // Dependencies
 
     // --- Render Logic ---
     if (!query) {
         return <Redirect href='/' />;
     }
+
+    const isLoadingInitial = initialResults.length === 0 && generalSummaryStatus === 'pending'; // Loading initial /search
 
     return (
         <Animated.ScrollView
@@ -291,10 +399,9 @@ export default function SearchScreen() {
             scrollEventThrottle={16}
         >
             <SearchBar value={query} />
-
+            {/* General summary */}
             <ResultContainer
                 title="General Summary"
-                // Show loading based on status, ensure it's loaded only when summary is non-null
                 loaded={generalSummaryStatus === 'loaded' && !!generalSummary}
                 loading={generalSummaryStatus === 'loading'}
                 error={generalSummaryStatus === 'error'}
@@ -309,19 +416,38 @@ export default function SearchScreen() {
                         {generalSummary || 'Failed to load general summary.'}
                     </Text>
                  )}
+                 {generalSummaryStatus === 'loading' && (
+                     <LoadingIndicator />
+                 )}
             </ResultContainer>
 
             <ResultContainer
                 title="Results"
-                // Considered loaded if we have initial results, individual items handle their own loading state
-                loaded={initialResults.length > 0 || detailedResults.length > 0}
-                // No top-level loading/error here, handled per item
+                loaded={initialResults.length > 0 || generalSummaryStatus === 'error'} // Show container once initial results arrive or if search failed
+                loading={!initialResults.length}
             >
-                {detailedResults.map((r) => <SearchResultItem key={r.id} result={r} />)}
-                {/* Show message if no results were found initially */}
-                {initialResults.length === 0 && detailedResults.length === 0 && generalSummaryStatus !== 'pending' && (
+                {initialResults.map((initialRes, index) => {
+                    const detailedRes = detailedResults.find(dr => dr.id === initialRes.id);
+                    const isTopNItem = index < topN;
+                    return (
+                        <SearchResultItem
+                            key={initialRes.id}
+                            initialResult={initialRes}
+                            detailedResult={detailedRes}
+                            isTopN={isTopNItem}
+                            onGenerateSummary={handleGenerateSummary}
+                            indicatorColor={tintColor} // Pass tint color down
+                        />
+                    );
+                })}
+                {/* Show message if initial search returned no results AND wasn't an error */}
+                {!isLoadingInitial && initialResults.length === 0 && generalSummaryStatus !== 'error' && (
                     <ThemedText>No results found for "{query}".</ThemedText>
                 )}
+                 {/* Show message if initial search itself failed */}
+                 {generalSummaryStatus === 'error' && initialResults.length === 0 && (
+                     <ThemedText style={styles.errorText}>Failed to fetch search results.</ThemedText>
+                 )}
             </ResultContainer>
         </Animated.ScrollView>
     );
@@ -339,39 +465,82 @@ const styles = StyleSheet.create({
         marginBottom: 10, // Add some space below title
     },
     resultItemContainer: {
-        marginBottom: 20, // Space between result items
+        marginBottom: 25, // Increased space between result items
+        paddingBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+     resultHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 2,
     },
     resultTitle: {
         color: '#0000EE',
         textDecorationLine: 'underline',
         fontSize: 18,
-        alignSelf: "flex-start",
-        marginBottom: 2,
+        flexShrink: 1, // Allow title to shrink if needed
+        marginRight: 8, // Space between title and chip
+        // alignSelf: "flex-start", // Removed, handled by resultHeader
+    },
+    indicatorChip: {
+        // Style the chip indicator
+        height: 24,
+        alignItems: 'center',
+    },
+    indicatorChipText: {
+        fontSize: 10, // Smaller text for the chip
     },
     resultUrl: {
         fontSize: 12,
         color: '#555555',
         alignSelf: "flex-start",
-        marginBottom: 5,
+        marginBottom: 8, // Increased margin
     },
     summaryContainer: {
-        marginTop: 5,
-        minHeight: 30, // Ensure space for loading indicator
+        marginTop: 8, // Increased margin
+        minHeight: 40, // Ensure space for loading indicator or button
     },
     resultContent: {
         fontSize: 14,
+        lineHeight: 20, // Improve readability
     },
-    loadingIndicator: {
-        // Align indicator nicely
-        alignSelf: 'flex-start',
-        marginLeft: 10,
+    snippetText: {
+        color: '#444', // Slightly darker than placeholder
+        marginBottom: 10, // Space before generate button
     },
+    // statusContainer style removed
+    // loadingText style removed
     errorText: {
-        color: 'red', // Make errors stand out
+        color: 'red',
     },
     placeholderText: {
-        color: '#888', // Grey color for placeholder
+        color: '#888',
         fontStyle: 'italic',
     },
-    // loadingContainer styles removed as loading is handled within ResultContainer/SearchResultItem
+    partialSummarySection: { // Styles for the revealed partial summary
+        marginTop: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+    },
+    partialSummaryTitle: { // Style for the "Detailed Summary:" label
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#666',
+        marginBottom: 4,
+    },
+    partialSummaryText: { // Style for the partial summary text itself
+        fontSize: 14,
+        color: '#555',
+        fontStyle: 'italic',
+    },
+    actionButton: {
+        marginTop: 10, // Space above the button
+        alignSelf: 'flex-start', // Align button to the left
+    },
+    actionButtonLabel: {
+        fontSize: 13, // Slightly smaller button text
+    }
 });
