@@ -12,6 +12,7 @@ Globals:
         HYPERBOLIC_AI_API_KEY: !Ref HyperbolicAiApiKey
         DEEPSEEK_API_KEY: !Ref DeepseekApiKey
         OPEN_ROUTER_API_KEY: !Ref OpenRouterApiKey
+        APP_ENVIRONMENT: !Ref EnvironmentType # Pass environment type to functions
   Api:
     Cors:
       AllowOrigin: !If

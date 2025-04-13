@@ -1,11 +1,15 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
 
+// Determine allowed origin based on environment
+const allowedOrigin = process.env.APP_ENVIRONMENT === 'dev' ? '*' : 'https://llm-search.pages.dev';
+
 // Helper function for CORS headers and error responses
 export const createJsonResponse = (statusCode: number, body: any, headers?: { [key: string]: string }): APIGatewayProxyResult => ({
     statusCode,
     body: JSON.stringify(body),
     headers: {
         'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': allowedOrigin,
         'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
         ...headers,
     },
