@@ -8,6 +8,8 @@ Globals:
   Function:
     Environment:
       Variables:
+        USERS_TABLE_NAME: !Ref UsersTable
+        JWT_SECRET: !Ref JwtSecret
         BING_API_KEY: !Ref BingApiKey
         HYPERBOLIC_AI_API_KEY: !Ref HyperbolicAiApiKey
         DEEPSEEK_API_KEY: !Ref DeepseekApiKey
@@ -16,20 +18,23 @@ Globals:
   Api:
     Cors:
       AllowOrigin: !If
-        - IsDevEnvironment        
-        - "'*'"                   
+        - IsDevEnvironment
+        - "'*'"
         - "'https://llm-search.pages.dev'"
-      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'" # Explicitly allow Content-Type and X-Api-Key
-      AllowMethods: "'GET,POST,OPTIONS'" # Allow POST and OPTIONS for preflight
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowMethods: "'GET,POST,OPTIONS'"
 
 Parameters:
-  BingApiKey: # Renamed Parameter
+  JwtSecret:
     Type: String
     NoEcho: true
-  HyperbolicAiApiKey: # Renamed Parameter
+  BingApiKey:
     Type: String
     NoEcho: true
-  DeepseekApiKey: # Renamed Parameter
+  HyperbolicAiApiKey:
+    Type: String
+    NoEcho: true
+  DeepseekApiKey:
     Type: String
     NoEcho: true
   OpenRouterApiKey:
@@ -48,6 +53,21 @@ Conditions:
   IsProdEnvironment: !Equals [ !Ref EnvironmentType, prod ]
 
 Resources:
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-UsersTable-${EnvironmentType}"
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: !If [ IsProdEnvironment, true, false ]
+      DeletionProtectionEnabled: !If [ IsProdEnvironment, true, false ]
+
   LlmSearchApiKey:
     Type: AWS::ApiGateway::ApiKey
     Properties:
@@ -241,4 +261,113 @@ Resources:
         Target: "es2020"
         Sourcemap: true
         EntryPoints:
-          - handlers/chatHandler.ts # Entry point for the new handler
+          - handlers/chatHandler.ts
+
+  # Authentication Functions
+  SignupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: main/
+      Handler: handlers/authHandler.signupHandler
+      Runtime: *nodejsRuntime
+      Architectures:
+        - *chromiumArch
+      Timeout: 15
+      MemorySize: 128
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Environment:
+        Variables:
+          USERS_TABLE_NAME: !Ref UsersTable
+      Events:
+        SignupApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /signup
+            Method: post
+            Auth:
+              ApiKeyRequired: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - handlers/authHandler.ts
+        External:
+          - mock-aws-s3
+          - aws-sdk
+          - nock
+
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: main/
+      Handler: handlers/authHandler.loginHandler
+      Runtime: *nodejsRuntime
+      Architectures:
+        - *chromiumArch
+      Timeout: 15
+      MemorySize: 256
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        LoginApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /login
+            Method: post
+            Auth:
+              ApiKeyRequired: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - handlers/authHandler.ts
+        External:
+          - mock-aws-s3
+          - aws-sdk
+          - nock
+
+  StatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: main/
+      Handler: handlers/authHandler.statusHandler
+      Runtime: *nodejsRuntime
+      Architectures:
+        - *chromiumArch
+      Timeout: 10
+      MemorySize: 128
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        StatusApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ServerlessRestApi
+            Path: /status
+            Method: get
+            Auth:
+              ApiKeyRequired: true
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - handlers/authHandler.ts
+        External:
+          - mock-aws-s3
+          - aws-sdk
+          - nock
