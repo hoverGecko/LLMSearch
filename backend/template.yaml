@@ -3,7 +3,6 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   llm-search backend SAM template
   
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Environment:
@@ -14,6 +13,11 @@ Globals:
         OPEN_ROUTER_API_KEY: !Ref OpenRouterApiKey
         APP_ENVIRONMENT: !Ref EnvironmentType # Pass environment type to functions
   Api:
+    Auth:
+      Authorizers:
+        CognitoAuthorizer:
+          UserPoolArn: !GetAtt CognitoUserPool.Arn
+      DefaultAuthorizer: CognitoAuthorizer
     Cors:
       AllowOrigin: !If
         - IsDevEnvironment        
@@ -23,13 +27,13 @@ Globals:
       AllowMethods: "'GET,POST,OPTIONS'" # Allow POST and OPTIONS for preflight
 
 Parameters:
-  BingApiKey: # Renamed Parameter
+  BingApiKey:
     Type: String
     NoEcho: true
-  HyperbolicAiApiKey: # Renamed Parameter
+  HyperbolicAiApiKey:
     Type: String
     NoEcho: true
-  DeepseekApiKey: # Renamed Parameter
+  DeepseekApiKey:
     Type: String
     NoEcho: true
   OpenRouterApiKey:
@@ -48,32 +52,54 @@ Conditions:
   IsProdEnvironment: !Equals [ !Ref EnvironmentType, prod ]
 
 Resources:
-  LlmSearchApiKey:
-    Type: AWS::ApiGateway::ApiKey
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
     Properties:
-      Name: LlmSearchFrontendKey
-      Description: API Key for the LLM Search Frontend
-      Enabled: true
-      GenerateDistinctId: true # Let AWS generate the key value
+      UserPoolName: !Sub llm-search-user-pool-${EnvironmentType}
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      MfaConfiguration: 'OFF'
 
-  LlmSearchUsagePlan:
-    Type: AWS::ApiGateway::UsagePlan
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
     Properties:
-      UsagePlanName: LlmSearchFrontendUsagePlan
-      Description: Usage plan for the LLM Search Frontend
-      ApiStages:
-        - ApiId: !Ref ServerlessRestApi # Reference the implicit API Gateway
-          Stage: !Ref ServerlessRestApiProdStage # Reference the implicit Prod stage
-      Throttle: # Add basic rate limiting
-        BurstLimit: 5
-        RateLimit: 10
-
-  LlmSearchUsagePlanKey:
-    Type: AWS::ApiGateway::UsagePlanKey
-    Properties:
-      KeyId: !Ref LlmSearchApiKey
-      KeyType: API_KEY
-      UsagePlanId: !Ref LlmSearchUsagePlan
+      ClientName: !Sub llm-search-frontend-client-${EnvironmentType}
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthScopes:
+        - phone
+        - email
+        - openid
+        - profile
+        - aws.cognito.signin.user.admin
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - http://localhost:8081/ # For local testing
+        - exp://localhost:8081/+expo-auth-session # For local testing
+        - !If [ IsProdEnvironment, 'https://llm-search.pages.dev/', !Ref "AWS::NoValue" ]
+      LogoutURLs:
+        - http://localhost:8081/
+        - exp://localhost:8081/+expo-auth-session
+        - !If [ IsProdEnvironment, 'https://llm-search.pages.dev/', !Ref "AWS::NoValue" ]
 
   # Shared Layer for Chromium
   ChromiumLayer:
@@ -108,8 +134,6 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /search
             Method: get
-            Auth:
-              ApiKeyRequired: true
       Timeout: 30
       MemorySize: 1024
     Metadata:
@@ -139,8 +163,6 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /process-url # New Path
             Method: post # New Method
-            Auth:
-              ApiKeyRequired: true
       Timeout: 120 # Needs longer timeout for scraping/LLM
       MemorySize: 3008 # Needs more memory for Chromium/LLM
     Metadata:
@@ -155,7 +177,7 @@ Resources:
           - "@sparticuz/chromium"
 
   # Function to generate the GENERAL summary from partial summaries
-  GenerateGeneralSummaryFunction: # Renamed Function
+  GenerateGeneralSummaryFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main/
@@ -171,8 +193,6 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /generate-general-summary
             Method: post
-            Auth:
-              ApiKeyRequired: true
       Timeout: 60
       MemorySize: 512
     Metadata:
@@ -185,7 +205,7 @@ Resources:
           - handlers/generateGeneralSummaryHandler.ts
 
   # Function to generate a single WEBPAGE summary
-  GenerateWebpageSummaryFunction: # New Function
+  GenerateWebpageSummaryFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main/
@@ -201,8 +221,6 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /generate-webpage-summary # New Path
             Method: post
-            Auth:
-              ApiKeyRequired: true
       Timeout: 60 # Timeout for LLM call
       MemorySize: 512 # Memory for LLM call
     Metadata:
@@ -219,7 +237,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: main/
-      Handler: handlers/chatHandler.handler # Path to the new handler
+      Handler: handlers/chatHandler.handler
       Runtime: *nodejsRuntime
       Architectures:
         - *chromiumArch
@@ -230,8 +248,6 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /chat
             Method: post
-            Auth:
-              ApiKeyRequired: true
       Timeout: 60 # Timeout for LLM call
       MemorySize: 512 # Memory for LLM call
     Metadata:
@@ -242,3 +258,14 @@ Resources:
         Sourcemap: true
         EntryPoints:
           - handlers/chatHandler.ts # Entry point for the new handler
+
+Outputs:
+  UserPoolId:
+    Description: "ID of the Cognito User Pool"
+    Value: !Ref CognitoUserPool
+  UserPoolClientId:
+    Description: "ID of the Cognito User Pool Client for the frontend"
+    Value: !Ref CognitoUserPoolClient
+  ApiGatewayEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

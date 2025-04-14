@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { ThemedView } from "./ThemedView";
-import { StyleProp, StyleSheet, ViewStyle } from "react-native";
-import { ThemedText } from "./ThemedText";
-import { Link, useRouter } from "expo-router";
+import { View, StyleProp, StyleSheet, ViewStyle } from "react-native";
+import { useRouter } from "expo-router";
 import { Button, Searchbar } from "react-native-paper";
 
 const SearchBar = (params: {value?: string, style?: StyleProp<ViewStyle>}) => {
@@ -19,7 +17,7 @@ const SearchBar = (params: {value?: string, style?: StyleProp<ViewStyle>}) => {
   };
 
   return (
-    <ThemedView style={params.style ?? styles.view}>
+    <View style={params.style ?? styles.view}>
       <Searchbar 
         icon={require("../assets/images/search.svg")} 
         clearIcon={require("../assets/images/close.svg")} 
@@ -38,7 +36,7 @@ const SearchBar = (params: {value?: string, style?: StyleProp<ViewStyle>}) => {
       >
         Search
       </Button>
-    </ThemedView>
+    </View>
   );
 };
 
