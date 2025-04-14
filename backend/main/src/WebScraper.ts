@@ -3,46 +3,43 @@ import chromium from '@sparticuz/chromium';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
+/**
+ * Scrap web content with urlToPlainText().
+ * Tries to directly fetch website with GET first. 
+ * If the fetched content indicates JavaScript is needed to load the webpage,
+ * use Chromium with Puppeteer to load the webpage.
+ * Return the body text content.
+ */
 export default class WebScraper {
-    // Keep the browser promise for lazy initialization of Puppeteer when needed
-    protected browserInstance: Browser | null = null;
-    protected browserPromise: Promise<Browser> | null = null;
+    private browser: Promise<Browser> | null = null;
 
     private async getBrowser(): Promise<Browser> {
-        if (this.browserInstance) {
-            return this.browserInstance;
+        if (this.browser) {
+            return this.browser;
         }
-        if (this.browserPromise) {
-            return this.browserPromise;
-        }
-
         console.log("Initializing Puppeteer browser instance...");
-        // Store the promise to prevent multiple launch attempts simultaneously
-        this.browserPromise = new Promise(async (resolve, reject) => {
+        // Store the browser to prevent multiple launch attempts simultaneously
+        this.browser = new Promise(async (resolve, reject) => {
             try {
                 // check if chromium exists
                 const executablePath = await chromium.executablePath();
                 if (!executablePath) {
                      throw new Error("Chromium executable path could not be found by @sparticuz/chromium.");
                 }
-
-                const browser = await puppeteer.launch({
+                const launchedBrowser = await puppeteer.launch({
                     args: chromium.args,
                     defaultViewport: chromium.defaultViewport,
                     executablePath: executablePath,
-                    headless: chromium.headless, // Use the dynamic headless value
+                    headless: chromium.headless
                 });
                 console.log("Puppeteer browser launched successfully.");
-                this.browserInstance = browser; // Store the resolved instance
-                this.browserPromise = null; // Clear the promise
-                resolve(browser);
+                resolve(launchedBrowser);
             } catch (error) {
                 console.error("Failed to launch Puppeteer browser:", error);
-                this.browserPromise = null; // Clear the promise on error
                 reject(error);
             }
         });
-        return this.browserPromise;
+        return this.browser;
     }
 
     private async _fastFetch(url: string | URL, timeout: number): Promise<string | null> {
@@ -55,7 +52,6 @@ export default class WebScraper {
                 },
                 timeout: timeout,
             });
-
             if (response.status >= 200 && response.status < 300 && response.data) {
                 console.log(`[Fast Fetch] Success for: ${url.toString()}`);
                 return response.data; // Return raw HTML
@@ -64,20 +60,22 @@ export default class WebScraper {
                 return null;
             }
         } catch (error: any) {
+             // e.g. Network error
             console.error(`[Fast Fetch] Error for ${url.toString()}: ${error.message}`);
-            return null; // Network error, timeout, etc.
+            return null;
         }
     }
 
+    // Check if directly fetched content is sufficient with heuristics
+    // If not, use heavy fetch with 
     private _isContentSufficient(text: string | null | undefined): boolean {
         if (!text) return false;
-
-        // 1. Minimum length (adjust as needed)
+        // Check if length of text is too short
         if (text.length < 150) {
             console.log(`[Heuristic] Content too short (${text.length} chars).`);
             return false;
         }
-        // 2. Check for common "JavaScript required" patterns
+        // Check for "JavaScript required" patterns
         const jsRequiredPatterns = [
             /enable javascript/i,
             /javascript is required/i,
@@ -88,7 +86,6 @@ export default class WebScraper {
              console.log("[Heuristic] Detected 'JavaScript required' pattern.");
              return false;
         }
-
         console.log(`[Heuristic] Content length (${text.length}) and pattern checks passed.`);
         return true;
     }
@@ -96,10 +93,10 @@ export default class WebScraper {
     private _extractTextWithCheerio(html: string): string | null {
          try {
             const $ = cheerio.load(html);
-            // Remove script/style tags for cleaner text extraction
-            $('script, style, noscript, link[rel="stylesheet"], header, footer, nav, img').remove(); // Remove common non-content areas
+            // Remove common non-bodytext areas
+            $('script, style, noscript, link[rel="stylesheet"], header, footer, nav, img').remove();
             let text = $('body').text();
-            text = text?.replace(/\s\s+/g, ' ').trim(); // Basic whitespace cleanup
+            text = text?.replace(/\s\s+/g, ' ').trim(); // Whitespace cleanup
             return text || null;
          } catch (parseError) {
             console.error("[Cheerio] Error parsing HTML:", parseError);
@@ -107,22 +104,21 @@ export default class WebScraper {
          }
     }
 
+    // Use Puppeteer to load webpage content with JS
     private async _heavyFetch(url: string | URL, timeout: number): Promise<string | null> {
         console.log(`[Heavy Fetch] Using Puppeteer for: ${url.toString()}`);
         let page: Page | null = null;
         try {
             const browser = await this.getBrowser(); // Ensure browser is initialized
             page = await browser.newPage();
-            // Set a slightly longer User-Agent for Puppeteer if desired
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36');
 
             await page.goto(url.toString(), { waitUntil: 'networkidle2', timeout: timeout });
 
-            // Extract *plain text* content
+            // Extract body text content
             const textContent = await page.evaluate(() => {
-                // Optional: Remove elements directly in the browser context if needed
                 document.querySelectorAll('script, style, noscript, link[rel="stylesheet"], header, footer, nav').forEach(el => el.remove());
-                return document.body?.innerText; // innerText often gives more human-readable text
+                return document.body?.innerText;
             });
 
             console.log(`[Heavy Fetch] Success for: ${url.toString()}`);
@@ -149,36 +145,34 @@ export default class WebScraper {
      * @param url URL of the webpage.
      * @param fastTimeout Timeout for the initial fast HTTP request (milliseconds). Default 5000ms.
      * @param heavyTimeout Timeout for the fallback Puppeteer navigation (milliseconds). Default 20000ms.
-     * @returns Plain text string, or null if content extraction fails.
+     * @returns Plaintext string, or null if content extraction fails.
      */
     public async urlToPlainText(
         url: string | URL,
         fastTimeout: number = 5000,
         heavyTimeout: number = 20000
     ): Promise<string | null> {
-
-        // 1. Attempt Fast Fetch
+        // Attempt Fast Fetch
         const fastHtml = await this._fastFetch(url, fastTimeout);
         let plainText: string | null = null;
 
         if (fastHtml) {
-             // 2. Extract text from fast fetch result
+             // Extract text from fast fetch result
              plainText = this._extractTextWithCheerio(fastHtml);
 
-             // 3. Apply Heuristic
+             // If fetch result is sufficient, return text
              if (this._isContentSufficient(plainText)) {
                  console.log(`[Hybrid Logic] Using fast fetch result for: ${url.toString()}`);
-                 return plainText; // Sufficient content found via fast method
+                 return plainText;
              } else {
                  console.log(`[Hybrid Logic] Fast fetch content insufficient for ${url.toString()}. Falling back.`);
-                 plainText = null; // Discard insufficient fast result
              }
         } else {
             console.log(`[Hybrid Logic] Fast fetch failed for ${url.toString()}. Falling back.`);
         }
 
-        // 4. Fallback to Heavy Fetch (Puppeteer)
-        // If fast fetch failed OR content was insufficient, use Puppeteer
+        // Fallback to Heavy Fetch
+        // If fast fetch failed or content was insufficient, use Puppeteer
         plainText = await this._heavyFetch(url, heavyTimeout);
 
         if (plainText) {
@@ -187,47 +181,6 @@ export default class WebScraper {
         } else {
             console.error(`[Hybrid Logic] All methods failed for: ${url.toString()}`);
             return null; // Both methods failed
-        }
-    }
-
-    /**
-     * Scrape webpages with an array of URLs and return the plaintext content for each.
-     * Uses the hybrid urlToPlainText method for each URL.
-     * @param urls URLs of the webpages.
-     * @param fastTimeout Timeout for the initial fast HTTP request per URL (milliseconds). Default 5000ms.
-     * @param heavyTimeout Timeout for the fallback Puppeteer navigation per URL (milliseconds). Default 20000ms.
-     * @returns Array of plain text strings or nulls.
-     */
-    public async urlsToPlainTexts(
-        urls: (string | URL)[],
-        fastTimeout: number = 5000,
-        heavyTimeout: number = 20000
-    ): Promise<(string | null)[]> {
-        // Process URLs sequentially to potentially reuse the browser instance more effectively
-        // If true parallelism is needed AND you are sure about resource limits, Promise.all can be used,
-        // but beware of launching too many Puppeteer pages simultaneously.
-        const results: (string | null)[] = [];
-        for (const url of urls) {
-            const result = await this.urlToPlainText(url, fastTimeout, heavyTimeout);
-            results.push(result);
-        }
-        return results;
-
-        // Alternative: Parallel execution (use with caution regarding resources)
-        // return Promise.all(
-        //     urls.map(url => this.urlToPlainText(url, fastTimeout, heavyTimeout))
-        // );
-    }
-
-    /**
-     *  close the browser instance if created.
-     */
-    public async closeBrowser(): Promise<void> {
-        if (this.browserInstance) {
-             console.log("Closing shared Puppeteer browser instance.");
-             await this.browserInstance.close();
-             this.browserInstance = null;
-             this.browserPromise = null; // Reset promises too
         }
     }
 }
