@@ -121,11 +121,9 @@ export default function SearchScreen() {
                 item.url === result.url ? { ...item, status: 'partial_loading' } : item
             ));
 
-            const postHeaders = getApiHeaders(true);
-
             fetch(`${backendUrl}/process-url`, {
                 method: 'POST',
-                headers: postHeaders,
+                headers: getApiHeaders(true),
                 body: JSON.stringify({ url: result.url, query: query }),
             })
             .then(res => {
@@ -151,7 +149,7 @@ export default function SearchScreen() {
 
                 fetch(`${backendUrl}/generate-webpage-summary`, {
                     method: 'POST',
-                    headers: postHeaders,
+                    headers: getApiHeaders(true),
                     body: JSON.stringify({ query: query, partialSummary: partialSummary }),
                 })
                 .then(res => {
