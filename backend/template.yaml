@@ -68,6 +68,33 @@ Resources:
         PointInTimeRecoveryEnabled: !If [ IsProdEnvironment, true, false ]
       DeletionProtectionEnabled: !If [ IsProdEnvironment, true, false ]
 
+  LlmSearchApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: LlmSearchFrontendKey
+      Description: API Key for the LLM Search Frontend
+      Enabled: true
+      GenerateDistinctId: true # Let AWS generate the key value
+
+  LlmSearchUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: LlmSearchFrontendUsagePlan
+      Description: Usage plan for the LLM Search Frontend
+      ApiStages:
+        - ApiId: !Ref ServerlessRestApi # Reference the implicit API Gateway
+          Stage: !Ref ServerlessRestApiProdStage # Reference the implicit Prod stage
+      Throttle: # Add basic rate limiting
+        BurstLimit: 5
+        RateLimit: 10
+
+  LlmSearchUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref LlmSearchApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref LlmSearchUsagePlan
+
   # Shared Layer for Chromium
   ChromiumLayer:
     Type: AWS::Serverless::LayerVersion
@@ -101,6 +128,8 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /search
             Method: get
+            Auth:
+              ApiKeyRequired: true
       Timeout: 30
       MemorySize: 1024
     Metadata:
@@ -124,12 +153,14 @@ Resources:
       Layers:
         - !Ref ChromiumLayer
       Events:
-        ProcessUrlApi:
+        ProcessUrlApi: # New event logical ID
           Type: Api
           Properties:
             RestApiId: !Ref ServerlessRestApi
-            Path: /process-url
-            Method: post
+            Path: /process-url # New Path
+            Method: post # New Method
+            Auth:
+              ApiKeyRequired: true
       Timeout: 120 # Needs longer timeout for scraping/LLM
       MemorySize: 3008 # Needs more memory for Chromium/LLM
     Metadata:
@@ -160,6 +191,8 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /generate-general-summary
             Method: post
+            Auth:
+              ApiKeyRequired: true
       Timeout: 60
       MemorySize: 512
     Metadata:
@@ -188,6 +221,8 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /generate-webpage-summary # New Path
             Method: post
+            Auth:
+              ApiKeyRequired: true
       Timeout: 60 # Timeout for LLM call
       MemorySize: 512 # Memory for LLM call
     Metadata:
@@ -215,6 +250,8 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /chat
             Method: post
+            Auth:
+              ApiKeyRequired: true
       Timeout: 60 # Timeout for LLM call
       MemorySize: 512 # Memory for LLM call
     Metadata:
@@ -250,6 +287,8 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /signup
             Method: post
+            Auth:
+              ApiKeyRequired: true
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -283,6 +322,8 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /login
             Method: post
+            Auth:
+              ApiKeyRequired: true
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -316,6 +357,8 @@ Resources:
             RestApiId: !Ref ServerlessRestApi
             Path: /status
             Method: get
+            Auth:
+              ApiKeyRequired: true
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

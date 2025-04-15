@@ -6,7 +6,6 @@ import ResultContainer from '@/components/ResultContainer';
 import LoadingIndicator from '@/components/LoadingIndicator';
 import { backendUrl, apiKey } from '@/constants/Constants';
 import { InitialResult, DetailedResult } from './SearchResultItem';
-import useApiHeaders from '@/hooks/useApiHeaders';
 
 const sendIcon = require("../assets/images/send.svg");
 
@@ -41,7 +40,6 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
     const [chatError, setChatError] = useState<string | null>(null);
     const [suggestedQueries, setSuggestedQueries] = useState<string[]>([]);
     const chatScrollViewRef = useRef<ScrollView>(null);
-    const getHeaders = useApiHeaders();
 
     // Reset when query is changed
     useEffect(() => {
@@ -97,9 +95,14 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
                         r.status === 'summary_error'
                     ) ? r.partialSummary : null);
 
+                const postHeaders: HeadersInit = { 'Content-Type': 'application/json' };
+                if (apiKey) postHeaders['x-api-key'] = apiKey;
+                else if (Platform.OS !== 'web') console.warn('API Key missing for general summary.');
+
+
                 fetch(`${backendUrl}/generate-general-summary`, {
                     method: 'POST',
-                    headers: getHeaders(true),
+                    headers: postHeaders,
                     body: JSON.stringify({ query: query, partialSummaries: topNPartialSummaries }),
                 })
                 .then(res => {
@@ -147,10 +150,13 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
 
         setTimeout(() => chatScrollViewRef.current?.scrollToEnd({ animated: true }), 100);
 
+        const postHeaders: HeadersInit = { 'Content-Type': 'application/json' };
+        if (apiKey) postHeaders['x-api-key'] = apiKey;
+
         try {
             const response = await fetch(`${backendUrl}/chat`, {
                 method: 'POST',
-                headers: getHeaders(true),
+                headers: postHeaders,
                 body: JSON.stringify({ history: chatHistory, query: currentQuery }),
             });
 

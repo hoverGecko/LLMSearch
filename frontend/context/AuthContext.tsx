@@ -3,7 +3,6 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { backendUrl, apiKey } from '@/constants/Constants';
 import { Platform } from 'react-native';
-import useApiHeaders from '@/hooks/useApiHeaders';
 
 // key of auth token in expo-secure-store
 const TOKEN_KEY = 'authToken';
@@ -45,7 +44,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true); // Start loading initially
-  const getHeaders = useApiHeaders();
 
   // Try to load user status on mount
   useEffect(() => {
@@ -62,7 +60,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Verify token with backend /status endpoint
         const response = await fetch(`${backendUrl}/status`, {
           method: 'GET',
-          headers: getHeaders()
+          headers: {
+            'Authorization': `Bearer ${storedToken}`,
+            'Content-Type': 'application/json',
+            'X-Api-Key': apiKey || ''
+          },
         });
 
         if (response.ok) {
@@ -99,7 +101,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await fetch(`${backendUrl}/login`, {
         method: 'POST',
-        headers: getHeaders(true),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': apiKey || ''
+        },
         body: JSON.stringify({ email, password }),
       });
 
@@ -132,7 +137,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await fetch(`${backendUrl}/signup`, {
         method: 'POST',
-        headers: getHeaders(true),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': apiKey || ''
+        },
         body: JSON.stringify({ email, password }),
       });
 
