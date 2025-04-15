@@ -2,13 +2,21 @@ import { StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import SearchBar from '@/components/SearchBar';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { IconButton } from 'react-native-paper';
 
 export default function HomeScreen() {
+  const router = useRouter();
   return (
     <ThemedView style={styles.container}>
       {/* Settings Icon Button */}
+      <IconButton
+        icon={require("../assets/images/settings.svg")}
+        size={28}
+        style={styles.settingsButton}
+        onPress={() => {router.navigate('/settings')}}
+      />
       <Link href="/settings" style={styles.settingsButton}>
           <Ionicons name="settings-outline" size={24} color="gray" />
       </Link>

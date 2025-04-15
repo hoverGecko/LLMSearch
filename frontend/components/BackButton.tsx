@@ -9,13 +9,7 @@ const BackButton = (props: { style?: Style, href?: Href }) => {
   const theme = useTheme();
   return (
     <IconButton
-      icon={() => (
-        <Ionicons
-          name="close-outline"
-          size={28}
-          color={theme.colors.onBackground}
-        />
-      )}
+      icon={require("../assets/images/cross.svg")}
       size={28}
       style={props.style ?? styles.closeButton}
       onPress={() => {props.href ? router.navigate(props.href) : router.back()}}
