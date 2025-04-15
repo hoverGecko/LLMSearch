@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
-import { signIn } from "@aws-amplify/auth";
 import { useRouter } from "expo-router";
 import { Button, Text, TextInput, Title, useTheme } from "react-native-paper";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -11,16 +11,17 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { login } = useAuth(); 
 
   const handleLogin = async () => {
     if (loading) return;
     setLoading(true);
     setError(null);
     try {
-      await signIn({ username: email, password });
-      console.log("Login successful");
+      await login(email, password);
+      console.log("Login attempt successful from component");
     } catch (err: any) {
-      console.error("Error signing in:", err);
+      console.error("Error logging in:", err);
       const errorMessage = err.message || "An error occurred during login.";
       setError(errorMessage);
       Alert.alert("Login Error", errorMessage);

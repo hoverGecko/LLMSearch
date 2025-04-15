@@ -1,20 +1,19 @@
 import React from 'react';
 import { StyleSheet, View, Alert } from 'react-native';
-import { Button, Title, useTheme } from 'react-native-paper'; // Import IconButton
-import { useRouter } from 'expo-router';
-import { signOut } from '@aws-amplify/auth';
+import { Button, Title, useTheme } from 'react-native-paper';
 import BackButton from '@/components/BackButton';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const router = useRouter();
+  const { logout } = useAuth();
 
   const handleSignOut = async () => {
     try {
-      await signOut();
-      console.log('Sign out successful from Settings');
+      await logout();
+      console.log('Logout successful from Settings');
     } catch (error) {
-      console.error('Error signing out from Settings: ', error);
+      console.error('Error logging out from Settings: ', error);
       Alert.alert('Sign Out Error', (error as Error).message || 'An unexpected error occurred.');
     }
   };

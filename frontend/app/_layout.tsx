@@ -10,6 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
 // Amplify/Cognito config
 Amplify.configure({
@@ -24,8 +25,49 @@ Amplify.configure({
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+// Handle routing to login/root depending on authentication
+const AuthLayout = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
   const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+    const isAuthScreen = segments[0] === 'login' || segments[0] === 'signup';
+
+    console.log('Auth State:', isAuthenticated, 'Is Loading:', isLoading, 'Segments:', segments);
+
+    if (!isAuthenticated && !isAuthScreen) {
+      // Redirect to login if not authenticated and not in login/signup page
+      console.log('Not logged in, redirecting to login');
+      router.replace('/login');
+    } else if (isAuthenticated && isAuthScreen) {
+      // Redirect to index if already authenticated
+      console.log('Already logged in, redirecting to index');
+      router.replace('/');
+    }
+  }, [isAuthenticated, isLoading, segments, router]);
+
+  // Render the main stack navigator once auth state is determined
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="search" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="signup" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </ThemeProvider>
+  );
+};
+
+
+export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -123,17 +165,9 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      {/* Define all screens; redirection logic will be handled in useEffect */}
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="search" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="signup" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <AuthProvider>
+      <AuthLayout />
+    </AuthProvider>
   );
 }
 

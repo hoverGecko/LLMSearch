@@ -1,4 +1,4 @@
-export const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+export const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
 export const apiKey = process.env.EXPO_PUBLIC_API_KEY;
 export const cognitoPoolId = process.env.EXPO_PUBLIC_COGNITO_POOL_ID!;
 export const cognitoClientId = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID!;
