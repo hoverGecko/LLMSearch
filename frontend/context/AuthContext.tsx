@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { backendUrl } from '@/constants/Constants';
+import { backendUrl, apiKey } from '@/constants/Constants';
 import { Platform } from 'react-native';
 
 // key of auth token in expo-secure-store
@@ -63,6 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           headers: {
             'Authorization': `Bearer ${storedToken}`,
             'Content-Type': 'application/json',
+            'X-Api-Key': apiKey || ''
           },
         });
 
@@ -102,6 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Api-Key': apiKey || ''
         },
         body: JSON.stringify({ email, password }),
       });
@@ -137,6 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Api-Key': apiKey || ''
         },
         body: JSON.stringify({ email, password }),
       });
