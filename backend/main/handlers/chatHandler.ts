@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
-import { createJsonResponse, handleError } from './lambdaHandlerUtils';
+import { createJsonResponse, handleError, verifyUserEmail } from './lambdaHandlerUtils';
 import { ChatCompletionMessageParam } from 'openai/resources';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -12,6 +12,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
     if (!event.body) {
         return createJsonResponse(400, { error: 'Missing request body.' });
+    }
+    if (!verifyUserEmail(event)) {
+        return createJsonResponse(401, { error: 'Unknown user.' })
     }
 
     let history: ChatCompletionMessageParam[] | undefined;

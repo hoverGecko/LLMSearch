@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import WebpageSummarizer from '../src/Summarizer/WebpageSummarizer';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
-import { createJsonResponse, handleError } from './lambdaHandlerUtils';
+import { createJsonResponse, handleError, verifyUserEmail } from './lambdaHandlerUtils';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     if (event.httpMethod === 'OPTIONS') {
@@ -12,6 +12,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
     if (!event.body) {
         return createJsonResponse(400, { error: 'Missing request body.' });
+    }
+    if (!verifyUserEmail(event)) {
+        return createJsonResponse(401, { error: 'Unknown user.' })
     }
 
     let query: string | undefined;

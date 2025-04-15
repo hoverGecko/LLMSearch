@@ -125,7 +125,7 @@ export const loginHandler = async (event: APIGatewayProxyEvent): Promise<APIGate
 // Return login status
 export const statusHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   // Validate JWT internally
-  const token = event.headers?.Authorization?.split(' ')[1];
+  const token = event.headers?.Authorization?.split(' ')?.[1];
 
   if (!token) {
     return createJsonResponse(401, { message: 'Missing authorization token' });

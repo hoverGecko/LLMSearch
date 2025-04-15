@@ -3,11 +3,11 @@ import { StyleSheet, Alert, View } from 'react-native';
 import { TextInput, Button, Text, Title, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import BackButton from '@/components/BackButton';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { useAuth } from '@/context/AuthContext';
 
 
 export default function SignupScreen() {
-  const theme = useTheme(); // Access Paper theme
+  const theme = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

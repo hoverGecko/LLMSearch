@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import BingSearchService from '../src/BingSearch/BingSearchService';
-import { createJsonResponse, handleError } from './lambdaHandlerUtils';
+import { createJsonResponse, handleError, verifyUserEmail } from './lambdaHandlerUtils';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
 import { ChatCompletionMessageParam } from 'openai/resources';
 
@@ -16,6 +16,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     if (!BING_API_KEY) {
         console.error('Server configuration error: Missing BING_API_KEY.');
         return createJsonResponse(500, { error: 'Server configuration error (Bing).' });
+    }
+    if (!verifyUserEmail(event)) {
+        return createJsonResponse(401, { error: 'Unknown user.' })
     }
 
     const searchService = new BingSearchService(BING_API_KEY);
