@@ -10,6 +10,7 @@ import ResultContainer from '@/components/ResultContainer';
 import SearchResultItem, { InitialResult, DetailedResult } from '@/components/SearchResultItem';
 import GeneralSummaryChat from '@/components/GeneralSummaryChat';
 import { useAuth } from '@/context/AuthContext';
+import useApiHeaders from '@/hooks/useApiHeaders';
 
 type SearchResultStatus = 'pending' | 'loading' | 'loaded' | 'error';
 
@@ -20,30 +21,13 @@ export default function SearchScreen() {
     const params = useLocalSearchParams<{ q: string }>();
     const query = params.q;
     const topN = 5; // Define how many results to process automatically
-    const { token } = useAuth();
 
     const [initialResults, setInitialResults] = useState<InitialResult[]>([]);
     const [detailedResults, setDetailedResults] = useState<DetailedResult[]>([]);
     const [searchResultStatus, setSearchResultStatus] = useState<SearchResultStatus>('pending');
 
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
-
-    // Helper function to create API headers
-    const getApiHeaders = useCallback((isJson = false): HeadersInit => {
-        const headers: HeadersInit = {};
-        if (apiKey) {
-            headers['x-api-key'] = apiKey;
-        } else if (Platform.OS !== 'web') {
-             console.warn('API Key missing.');
-        }
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-        if (isJson) {
-            headers['Content-Type'] = 'application/json';
-        }
-        return headers;
-    }, [token]);
+    const getApiHeaders = useApiHeaders();
 
     useEffect(() => {
         if (!query) return;
@@ -121,11 +105,9 @@ export default function SearchScreen() {
                 item.url === result.url ? { ...item, status: 'partial_loading' } : item
             ));
 
-            const postHeaders = getApiHeaders(true);
-
             fetch(`${backendUrl}/process-url`, {
                 method: 'POST',
-                headers: postHeaders,
+                headers: getApiHeaders(true),
                 body: JSON.stringify({ url: result.url, query: query }),
             })
             .then(res => {
@@ -151,7 +133,7 @@ export default function SearchScreen() {
 
                 fetch(`${backendUrl}/generate-webpage-summary`, {
                     method: 'POST',
-                    headers: postHeaders,
+                    headers: getApiHeaders(true),
                     body: JSON.stringify({ query: query, partialSummary: partialSummary }),
                 })
                 .then(res => {
