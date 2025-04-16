@@ -41,23 +41,7 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
     const [chatError, setChatError] = useState<string | null>(null);
     const [suggestedQueries, setSuggestedQueries] = useState<string[]>([]);
     const chatScrollViewRef = useRef<ScrollView>(null);
-    const { token } = useAuth();
-
-    const getApiHeaders = useCallback((isJson = false): HeadersInit => {
-        const headers: HeadersInit = {};
-        if (apiKey) {
-            headers['x-api-key'] = apiKey;
-        } else if (Platform.OS !== 'web') {
-                console.warn('API Key missing.');
-        }
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-        if (isJson) {
-            headers['Content-Type'] = 'application/json';
-        }
-        return headers;
-    }, [token]);
+    const { authFetch } = useAuth();
 
     // Reset when query is changed
     useEffect(() => {
@@ -113,9 +97,8 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
                         r.status === 'summary_error'
                     ) ? r.partialSummary : null);
 
-                fetch(`${backendUrl}/generate-general-summary`, {
+                authFetch('generate-general-summary', {
                     method: 'POST',
-                    headers: getApiHeaders(true),
                     body: JSON.stringify({ query: query, partialSummaries: topNPartialSummaries }),
                 })
                 .then(res => {
@@ -164,9 +147,8 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
         setTimeout(() => chatScrollViewRef.current?.scrollToEnd({ animated: true }), 100);
 
         try {
-            const response = await fetch(`${backendUrl}/chat`, {
+            const response = await authFetch(`${backendUrl}/chat`, {
                 method: 'POST',
-                headers: getApiHeaders(true),
                 body: JSON.stringify({ history: chatHistory, query: currentQuery }),
             });
 
@@ -331,7 +313,7 @@ const styles = StyleSheet.create({
         color: '#ffffff',
     },
     assistantMessageText: {
-        color: '#000000',
+        color: '#101010',
     },
     suggestionsContainer: {
         marginTop: 10,

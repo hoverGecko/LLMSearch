@@ -1,3 +1,4 @@
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -6,7 +7,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
 
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -64,20 +64,13 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
-
-
-  // Show loading indicator while fonts load or auth state is being determined
-  if (!loaded) { // Only check for fonts loaded now
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
+  
   return (
     <AuthProvider>
-      <AuthLayout />
+        {loaded ? 
+          <AuthLayout /> : 
+          <View style={styles.loadingContainer}><ActivityIndicator size="large" /></View>
+        }
     </AuthProvider>
   );
 }

@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
 import LoadingIndicator from './LoadingIndicator';
 
@@ -18,26 +18,23 @@ const ResultContainer = ({
     loaded = false,
     loading = false,
     error = false
-}: PropsWithChildren<{ title: string; loaded?: boolean; loading?: boolean; error?: boolean }>) => {
-    const hasChildren = React.Children.count(children) > 0;
-
+}: PropsWithChildren<{ title?: string; loaded?: boolean; loading?: boolean; error?: boolean }>) => {
     return (
         <Surface style={styles.container}>
-            <Text style={styles.title}>{title}</Text>
-            {/* Show internal spinner only if loading and no children are provided */}
+            {title && <Text style={styles.title}>{title}</Text>}
             {loading ? (
                 <View style={styles.statusContainer}>
                     <LoadingIndicator />
                 </View>
             ) : error ? (
                 <View style={styles.statusContainer}>
-                    {/* Display children if they represent an error message, otherwise a default */}
+                    {/* If no children, display default error message. */}
                     {React.Children.count(children) > 0 ? children : <Text style={styles.errorText}>An error occurred.</Text>}
                 </View>
             ) : loaded ? (
-                 children // Show content only when loaded and not loading/error
+                 children
             ) : (
-                 null // Or a placeholder like <Text>Waiting for results...</Text>
+                 null
             )}
         </Surface>
     );
@@ -45,7 +42,7 @@ const ResultContainer = ({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#fafafa',
         borderRadius: 10,
         padding: 16,
         marginVertical: 8, // Use vertical margin

@@ -21,30 +21,13 @@ export default function SearchScreen() {
     const params = useLocalSearchParams<{ q: string }>();
     const query = params.q;
     const topN = 5; // Define how many results to process automatically
-    const { token } = useAuth();
+    const { authFetch } = useAuth();
 
     const [initialResults, setInitialResults] = useState<InitialResult[]>([]);
     const [detailedResults, setDetailedResults] = useState<DetailedResult[]>([]);
     const [searchResultStatus, setSearchResultStatus] = useState<SearchResultStatus>('pending');
 
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
-
-    // Helper function to create API headers
-    const getApiHeaders = useCallback((isJson = false): HeadersInit => {
-        const headers: HeadersInit = {};
-        if (apiKey) {
-            headers['x-api-key'] = apiKey;
-        } else if (Platform.OS !== 'web') {
-             console.warn('API Key missing.');
-        }
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-        if (isJson) {
-            headers['Content-Type'] = 'application/json';
-        }
-        return headers;
-    }, [token]);
 
     // Fetching Bing search results, and then set topN results to loading (webpage summary to be generated)
     useEffect(() => {
@@ -54,11 +37,9 @@ export default function SearchScreen() {
         setDetailedResults([]);
         setSearchResultStatus('pending'); // Reset status used for isLoadingInitial
 
-        const headers = getApiHeaders();
-
         console.log(`Fetching initial results for query: ${query}`);
         setSearchResultStatus('loading'); // Set loading state immediately
-        fetch(`${backendUrl}/search?${new URLSearchParams({ q: query })}`, { headers })
+        authFetch(`search?${new URLSearchParams({ q: query })}`)
             .then(res => {
                 if (!res.ok) {
                      setSearchResultStatus('error'); // Set error if fetch fails
@@ -124,9 +105,8 @@ export default function SearchScreen() {
                 item.url === result.url ? { ...item, status: 'partial_loading' } : item
             ));
 
-            fetch(`${backendUrl}/process-url`, {
+            authFetch('process-url', {
                 method: 'POST',
-                headers: getApiHeaders(true),
                 body: JSON.stringify({ url: result.url, query: query }),
             })
             .then(res => {
@@ -150,9 +130,8 @@ export default function SearchScreen() {
                     item.url === result.url ? { ...item, status: 'summary_loading', partialSummary: partialSummary } : item
                 ));
 
-                fetch(`${backendUrl}/generate-webpage-summary`, {
+                authFetch('generate-webpage-summary', {
                     method: 'POST',
-                    headers: getApiHeaders(true),
                     body: JSON.stringify({ query: query, partialSummary: partialSummary }),
                 })
                 .then(res => {
@@ -219,10 +198,9 @@ export default function SearchScreen() {
                 initialResults={initialResults}
                 detailedResults={detailedResults}
                 topN={topN}
-                onSuggestionClick={handleSuggestionSearch} // Pass the callback
+                onSuggestionClick={handleSuggestionSearch} // search suggestion
             />
             <ResultContainer
-                title="Results"
                 loaded={initialResults.length > 0 || searchResultStatus === 'error'} // Show container once initial results arrive or if search failed
                 loading={!initialResults.length}
             >

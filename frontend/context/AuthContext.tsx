@@ -1,7 +1,7 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { apiKey, backendUrl } from '@/constants/Constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { backendUrl, apiKey } from '@/constants/Constants';
+import * as SecureStore from 'expo-secure-store';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 // key of auth token in expo-secure-store
@@ -19,7 +19,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  checkAuthStatus: () => Promise<void>; // Manually trigger check if needed
+  checkAuthStatus: () => Promise<void>;
+  // enable path hinting
+  authFetch: (path: BackendAPIPath | (string & {}), options?: RequestInit, baseUrl?: string) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -173,19 +175,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const authFetch = useCallback(async (path: string, options: RequestInit = {}, baseUrl: string = backendUrl): Promise<Response> => {
+    const headers = new Headers(options.headers);
+    headers.set('Authorization', `Bearer ${await itemStorage.get(TOKEN_KEY)}`);
+    if (apiKey) {
+      headers.set('X-Api-Key', apiKey);
+    }
+    // default content type to json if body is set
+    if (options.body && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    const fullUrl = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    console.log(`authenticatedFetch: ${options.method || 'GET'} ${fullUrl}`);
+    return fetch(fullUrl, {
+      ...options,
+      headers,
+    });
+  }, [isLoading, isAuthenticated, token]);
+
+
   const value = {
     token,
     user,
     isAuthenticated,
     isLoading,
+    authFetch,
     login,
     signup,
     logout,
-    checkAuthStatus,
+    checkAuthStatus
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export type BackendAPIPath = 
+  'login' | 'signup' | 'generate-general-summary' | 'generate-webpage-summary' | 'process-url' | 'search'
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
