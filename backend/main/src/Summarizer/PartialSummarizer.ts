@@ -13,6 +13,7 @@ export default class PartialSummarizer {
 Extract summarized information from the provided webpage body text content. Output it in paragraphs.
 Do not include introductory phrases or explanations; start directly with the relevant information. 
 If the webpage does not load, simply say 'Fail to load the webpage content.' without additional sentences.
+Do not use markdown. Return plaintext only.
                 `
             },
             {

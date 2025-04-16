@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import SearchBar from '@/components/SearchBar';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { IconButton } from 'react-native-paper';
 
 export default function HomeScreen() {
@@ -16,7 +16,9 @@ export default function HomeScreen() {
         onPress={() => {router.navigate('/settings')}}
       />
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">LLMSearch</ThemedText>
+        <Link href="/">
+          <ThemedText type="title">LLMSearch</ThemedText>
+        </Link>
       </ThemedView>
       <SearchBar direction="column" />
     </ThemedView>

@@ -69,7 +69,7 @@ export const signupHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     }
 
     // password requirement check
-    if (checkPasswordRequirements(password)) {
+    if (!isValidNewPassword(password)) {
         return createJsonResponse(400, { message: 'Password requirement not met.' });
     }
 

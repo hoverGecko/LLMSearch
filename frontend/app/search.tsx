@@ -1,6 +1,6 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, View } from 'react-native';
 import { backendUrl, apiKey } from '@/constants/Constants';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState, useCallback } from 'react';
 import { ThemedText } from '@/components/ThemedText';
 import SearchBar from '@/components/SearchBar';
@@ -10,6 +10,7 @@ import ResultContainer from '@/components/ResultContainer';
 import SearchResultItem, { InitialResult, DetailedResult } from '@/components/SearchResultItem';
 import GeneralSummaryChat from '@/components/GeneralSummaryChat';
 import { useAuth } from '@/context/AuthContext';
+import { IconButton, Title } from 'react-native-paper';
 
 type SearchResultStatus = 'pending' | 'loading' | 'loaded' | 'error';
 
@@ -45,6 +46,7 @@ export default function SearchScreen() {
         return headers;
     }, [token]);
 
+    // Fetching Bing search results, and then set topN results to loading (webpage summary to be generated)
     useEffect(() => {
         if (!query) return;
 
@@ -109,6 +111,7 @@ export default function SearchScreen() {
         }
     }, [initialResults, detailedResults]);
 
+    // Generate webpage summaries for topN results, then general summary
     useEffect(() => {
         if (!query || detailedResults.length === 0) return;
 
@@ -186,10 +189,10 @@ export default function SearchScreen() {
         return <Redirect href='/' />;
     }
 
-    const handleSuggestionSearch = useCallback((suggestion: string) => {
+    const handleSuggestionSearch = (suggestion: string) => {
         console.log(`Navigating to new search for suggestion: ${suggestion}`);
         router.push(`/search?q=${encodeURIComponent(suggestion)}`);
-    }, [router]);
+    };
 
     const isLoadingInitial = initialResults.length === 0 && searchResultStatus === 'pending';
 
@@ -199,6 +202,17 @@ export default function SearchScreen() {
             ref={scrollRef}
             scrollEventThrottle={16}
         >
+            {/*Title bar with setting*/}
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                <Link href="/">
+                    <ThemedText type='title' style={{fontSize: 20}}>LLMSearch</ThemedText>
+                </Link>
+                <IconButton
+                    icon={require("../assets/images/settings.svg")}
+                    size={24}
+                    onPress={() => {router.navigate('/settings')}}
+                />
+            </View>
             <SearchBar value={query} />
             <GeneralSummaryChat
                 query={query}
@@ -238,8 +252,15 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
+    settingsButton: {
+      position: 'absolute',
+      top: 20, // Adjust as needed for status bar height
+      right: 20,
+      padding: 5, // Add padding for easier touch
+    },
     container: {
-        padding: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
         flex: 1,
     },
     titleContainer: {
