@@ -28,7 +28,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             throw new Error('Missing "query" or "partialSummaries" (must be an array) in request body.');
         }
     } catch (e) {
-        return handleError(e, 'Invalid request body');
+        return createJsonResponse(400, { error: 'Invalid request body' });
     }
 
     const validPartialSummaries = partialSummaries.filter((s): s is string => s !== null);
@@ -38,7 +38,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
          return createJsonResponse(200, { generalSummary: "Could not generate summary as no website content could be processed." });
     }
 
-    const completor = new OpenRouterCompletor('google/gemini-2.0-flash-001');
+    const completor = new OpenRouterCompletor(['google/gemini-2.0-flash-001', 'openai/gpt-4o-mini']);
     const generalSummarizer = new GeneralSummarizer(completor);
 
     try {

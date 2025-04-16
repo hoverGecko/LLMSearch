@@ -5,9 +5,6 @@ import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
 import { createJsonResponse, handleError, verifyUserEmail } from './lambdaHandlerUtils';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    if (event.httpMethod === 'OPTIONS') {
-        return createJsonResponse(200, {});
-    }
     if (event.httpMethod !== 'POST') {
          return createJsonResponse(405, { error: `Unsupported method: ${event.httpMethod}` });
     }
@@ -31,7 +28,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         return handleError(e, 'Invalid request body');
     }
 
-    const completor = new OpenRouterCompletor('google/gemini-2.0-flash-001');
+    const completor = new OpenRouterCompletor(['google/gemini-2.0-flash-001', 'openai/gpt-4o-mini']);
     const partialSummarizer = new PartialSummarizer(completor);
     const scraper = new WebScraper();
 

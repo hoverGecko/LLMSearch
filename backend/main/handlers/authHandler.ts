@@ -73,7 +73,6 @@ export const signupHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
         return createJsonResponse(400, { message: 'Password requirement not met.' });
     }
 
-    console.log('before get command')
     // Check if user already exists
     const getCommand = new GetCommand({
       TableName: USERS_TABLE_NAME,
@@ -84,7 +83,6 @@ export const signupHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     if (existingUser.Item) {
       return createJsonResponse(409, { message: 'User already exists' }); // 409 Conflict
     }
-    console.log('after get command')
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -108,7 +106,7 @@ export const signupHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     console.error('Signup Error:', error);
     // Handle potential race condition if ConditionExpression fails
     if (error.name === 'ConditionalCheckFailedException') {
-        return createJsonResponse(409, { message: 'User already exists (race condition)' });
+        return createJsonResponse(409, { message: 'User already exists (race condition)' }); // 409 Conflict
     }
     return createJsonResponse(500, { message: 'Internal server error during signup' });
   }

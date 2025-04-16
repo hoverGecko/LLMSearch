@@ -3,8 +3,12 @@ import LLMPromptCompletor from './LLMPromptCompletor';
 
 
 export default class OpenRouterCompletor extends LLMPromptCompletor {
-    constructor(model: OpenRouterModel) {
-        super(new OpenAI({apiKey: process.env.OPEN_ROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1"}), model);
+    constructor(models: OpenRouterModel | OpenRouterModel[]) {
+        if (!Array.isArray(models)) {
+            models = [models];
+        }
+        const client = new OpenAI({apiKey: process.env.OPEN_ROUTER_API_KEY, baseURL: "https://openrouter.ai/api/v1"});
+        super(models.map(model => {return {client, model}}));
     }
 }
 

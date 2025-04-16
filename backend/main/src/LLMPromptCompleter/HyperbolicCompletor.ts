@@ -16,6 +16,6 @@ type HyperbolicModel =
 
 export default class HyperbolicCompletor extends LLMPromptCompletor {
     constructor(model: HyperbolicModel) {
-        super(new OpenAI({apiKey: process.env.HYPERBOLIC_AI_API_KEY, baseURL: 'https://api.hyperbolic.xyz/v1'}), model);
+        super({client: new OpenAI({apiKey: process.env.HYPERBOLIC_AI_API_KEY, baseURL: 'https://api.hyperbolic.xyz/v1'}), model});
     }
 }

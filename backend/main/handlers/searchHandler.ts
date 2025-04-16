@@ -5,9 +5,6 @@ import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
 import { ChatCompletionMessageParam } from 'openai/resources';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    if (event.httpMethod === 'OPTIONS') {
-        return createJsonResponse(200, {});
-    }
     const query = event.queryStringParameters?.['q'];
     if (!query) {
         return createJsonResponse(400, { error: 'Missing search query string "q" e.g. "/search?q=apple".' });
@@ -22,7 +19,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     const searchService = new BingSearchService(BING_API_KEY);
-    const completor = new OpenRouterCompletor('google/gemini-2.0-flash-001');
+    const completor = new OpenRouterCompletor(['google/gemini-2.0-flash-001', 'openai/gpt-4o-mini']);
 
     try {
         // Create alternative search queries
