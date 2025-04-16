@@ -4,7 +4,7 @@ import { TextInput, Button, Text, Title, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import BackButton from '@/components/BackButton';
 import { useAuth } from '@/context/AuthContext';
-
+import PasswordRequirementCheck from '@/components/PasswordRequirementCheck';
 
 export default function SignupScreen() {
   const theme = useTheme();
@@ -13,7 +13,7 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { signup } = useAuth();
+  const { signup, login } = useAuth();
 
   const handleSignup = async () => {
     if (loading) return;
@@ -22,12 +22,8 @@ export default function SignupScreen() {
     try {
       // Call the signup function from context with email and password
       await signup(email, password);
-
-      // Signup successful, show message and navigate to login
-      console.log('Signup successful from component');
-      Alert.alert('Signup Successful', 'Your account has been created. Please log in.');
-      router.replace('/login'); // Navigate to login screen
-
+      // Signup successful, login now
+      await login(email, password)
     } catch (err: any) {
       console.error('Error signing up:', err);
       const errorMessage = err.message || 'An error occurred during signup.';
@@ -62,6 +58,9 @@ export default function SignupScreen() {
           mode="outlined"
           style={styles.input}
         />
+        <View style={{width: '100%', alignItems: 'flex-start'}}>
+          <PasswordRequirementCheck password={password} />
+        </View>
         <Button
           mode="contained"
           onPress={handleSignup}

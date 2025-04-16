@@ -9,7 +9,6 @@ export default function HomeScreen() {
   const router = useRouter();
   return (
     <ThemedView style={styles.container}>
-      {/* Settings Icon Button */}
       <IconButton
         icon={require("../assets/images/settings.svg")}
         size={28}
@@ -19,7 +18,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">LLMSearch</ThemedText>
       </ThemedView>
-      <SearchBar />
+      <SearchBar direction="column" />
     </ThemedView>
   );
 }
@@ -30,7 +29,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     height: '100%',
-    gap: 10,
     position: 'relative', // Needed for absolute positioning of button
   },
   settingsButton: {

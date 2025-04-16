@@ -3,8 +3,16 @@ import { View, StyleProp, StyleSheet, ViewStyle } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, Searchbar } from "react-native-paper";
 
-const SearchBar = (params: {value?: string, style?: StyleProp<ViewStyle>}) => {
-  const [query, setQuery] = useState(params.value ?? '');
+/**
+ * Default direction: row
+ * @returns
+ */
+const SearchBar = (props: {
+  value?: string;
+  style?: StyleProp<ViewStyle>;
+  direction?: "row" | "column";
+}) => {
+  const [query, setQuery] = useState(props.value ?? "");
   const router = useRouter();
 
   const handleSearch = () => {
@@ -16,15 +24,25 @@ const SearchBar = (params: {value?: string, style?: StyleProp<ViewStyle>}) => {
     }
   };
 
+  const viewStyle = StyleSheet.create({
+    view: {
+      flexDirection: props.direction ?? 'row',
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+    },
+  }).view;
+
   return (
-    <View style={params.style ?? styles.view}>
-      <Searchbar 
-        icon={require("../assets/images/search.svg")} 
-        clearIcon={require("../assets/images/close.svg")} 
-        style={styles.searchBar} 
-        value={query} 
+    <View style={viewStyle}>
+      <Searchbar
+        icon={require("../assets/images/search.svg")}
+        clearIcon={require("../assets/images/close.svg")}
+        style={styles.searchBar}
+        value={query}
         onChangeText={setQuery}
         onSubmitEditing={handleSearch}
+        clearButtonMode="always"
       />
       <Button
         mode="contained"
@@ -41,23 +59,18 @@ const SearchBar = (params: {value?: string, style?: StyleProp<ViewStyle>}) => {
 };
 
 const styles = StyleSheet.create({
-  view: {
-    flexDirection: 'row',
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10
-  },
   searchBar: {
-    flexGrow: 1
+    marginVertical: 5,
+    flex: 1
   },
   searchButton: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 20
+    backgroundColor: "#E0E0E0",
+    borderRadius: 20,
   },
   searchButtonContent: {
     height: 50,
-    paddingHorizontal: 5
-  }
+    paddingHorizontal: 5,
+  },
 });
 
 export default SearchBar;

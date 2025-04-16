@@ -15,6 +15,47 @@ if (!JWT_SECRET) {
   console.error('FATAL ERROR: JWT_SECRET environment variable is not set.');
 }
 
+type PasswordRequirement = {
+  id: string;
+  label: string;
+  test: (password: string) => boolean;
+};
+
+const passwordRequirements: PasswordRequirement[] = [
+  {
+    id: 'length',
+    label: 'At least 8 characters',
+    test: (password: string) => password.length >= 8,
+  },
+  {
+    id: 'number',
+    label: 'At least 1 number',
+    test: (password: string) => /[0-9]/.test(password),
+  },
+  {
+    id: 'uppercase',
+    label: 'At least 1 uppercase letter',
+    test: (password: string) => /[A-Z]/.test(password),
+  },
+  {
+    id: 'lowercase',
+    label: 'At least 1 lowercase letter',
+    test: (password: string) => /[a-z]/.test(password),
+  },
+];
+
+const checkPasswordRequirements = (password: string) => {
+  const results: Record<string, boolean> = {};
+  passwordRequirements.forEach(({ id, test }) => {
+    results[id] = test(password);
+  });
+  return results;
+}
+
+const isValidNewPassword = (password: string): boolean => {
+  return Object.values(checkPasswordRequirements(password)).every(a => a);
+}
+
 export const signupHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   if (!event.body) {
     return createJsonResponse(400, { message: 'Missing request body' });
@@ -27,9 +68,9 @@ export const signupHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
       return createJsonResponse(400, { message: 'Email and password are required' });
     }
 
-    // password length check
-    if (password.length < 8) {
-        return createJsonResponse(400, { message: 'Password must be at least 8 characters long' });
+    // password requirement check
+    if (checkPasswordRequirements(password)) {
+        return createJsonResponse(400, { message: 'Password requirement not met.' });
     }
 
     console.log('before get command')
