@@ -1,16 +1,15 @@
-import { StyleSheet, Platform, View } from 'react-native';
-import { backendUrl, apiKey } from '@/constants/Constants';
-import { Link, Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState, useCallback } from 'react';
-import { ThemedText } from '@/components/ThemedText';
-import SearchBar from '@/components/SearchBar';
-import Animated, { useAnimatedRef } from 'react-native-reanimated';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import ResultContainer from '@/components/ResultContainer';
-import SearchResultItem, { InitialResult, DetailedResult } from '@/components/SearchResultItem';
 import GeneralSummaryChat from '@/components/GeneralSummaryChat';
+import ResultContainer from '@/components/ResultContainer';
+import SearchBar from '@/components/SearchBar';
+import SearchResultItem, { DetailedResult, InitialResult } from '@/components/SearchResultItem';
+import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/context/AuthContext';
-import { IconButton, Title } from 'react-native-paper';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { Link, Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { IconButton } from 'react-native-paper';
+import Animated, { useAnimatedRef } from 'react-native-reanimated';
 
 type SearchResultStatus = 'pending' | 'loading' | 'loaded' | 'error';
 

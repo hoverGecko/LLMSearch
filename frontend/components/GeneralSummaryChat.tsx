@@ -25,7 +25,7 @@ interface GeneralSummaryProps {
     onSuggestionClick: (suggestion: string) => void;
 }
 
-const GeneralSummary: React.FC<GeneralSummaryProps> = ({
+const GeneralSummaryChat: React.FC<GeneralSummaryProps> = ({
     query,
     initialResults,
     detailedResults,
@@ -34,7 +34,7 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
 }) => {
     const [generalSummary, setGeneralSummary] = useState<string | null>(null);
     const [generalSummaryStatus, setGeneralSummaryStatus] = useState<GeneralSummaryStatus>('pending');
-    const generalSummaryFetchTriggered = useRef(false);
+    const generalSummaryFetchTriggered = useRef(false); // ref does not rerender component when changed
     const [chatHistory, setChatHistory] = useState<ChatMessage[] | null>(null);
     const [userQuery, setUserQuery] = useState<string>('');
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
@@ -147,7 +147,7 @@ const GeneralSummary: React.FC<GeneralSummaryProps> = ({
         setTimeout(() => chatScrollViewRef.current?.scrollToEnd({ animated: true }), 100);
 
         try {
-            const response = await authFetch(`${backendUrl}/chat`, {
+            const response = await authFetch('chat', {
                 method: 'POST',
                 body: JSON.stringify({ history: chatHistory, query: currentQuery }),
             });
@@ -359,4 +359,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default GeneralSummary;
+export default GeneralSummaryChat;

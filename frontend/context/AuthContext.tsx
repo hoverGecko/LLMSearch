@@ -64,7 +64,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${storedToken}`,
-            'Content-Type': 'application/json',
             'X-Api-Key': apiKey || ''
           },
         });
