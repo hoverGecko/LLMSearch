@@ -79,7 +79,7 @@ If suggestions are not needed, do not include the "Suggested searches:" phrase o
         ] as ChatCompletionMessageParam[];
         return createJsonResponse(200, {
             history: updatedHistory,
-            suggested_queries: suggestedQueries
+            suggestedQueries: suggestedQueries
         });
 
     } catch (e) {

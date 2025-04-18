@@ -4,7 +4,6 @@ import { Button } from 'react-native-paper';
 import { Text } from 'react-native-paper';
 import ResultContainer from '@/components/ResultContainer';
 import LoadingIndicator from '@/components/LoadingIndicator';
-import { backendUrl, apiKey } from '@/constants/Constants';
 import { InitialResult, DetailedResult } from './SearchResultItem';
 import { useAuth } from '@/context/AuthContext';
 
@@ -163,7 +162,7 @@ const GeneralSummaryChat: React.FC<GeneralSummaryProps> = ({
             if (data.history && Array.isArray(data.history)) {
                 setChatHistory(data.history);
                 // Store suggestions if they exist
-                setSuggestedQueries(data.suggested_queries && Array.isArray(data.suggested_queries) ? data.suggested_queries : []);
+                setSuggestedQueries(data.suggestedQueries && Array.isArray(data.suggestedQueries) ? data.suggestedQueries : []);
                 setTimeout(() => chatScrollViewRef.current?.scrollToEnd({ animated: true }), 100);
             } else {
                 throw new Error("Invalid chat response format received from backend.");
