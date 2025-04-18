@@ -67,7 +67,7 @@ export default class WebScraper {
     }
 
     // Check if directly fetched content is sufficient with heuristics
-    // If not, use heavy fetch with 
+    // If not, use heavy fetch with Puppeteer
     private _isContentSufficient(text: string | null | undefined): boolean {
         if (!text) return false;
         // Check if length of text is too short
