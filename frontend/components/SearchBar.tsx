@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { View, StyleProp, StyleSheet, ViewStyle } from "react-native";
+import CloseIcon from '@/assets/images/close.svg';
+import SearchIcon from '@/assets/images/search.svg';
 import { useRouter } from "expo-router";
+import { useState } from "react";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { Button, Searchbar } from "react-native-paper";
 
 /**
@@ -36,9 +38,10 @@ const SearchBar = (props: {
   return (
     <View style={viewStyle}>
       <Searchbar
-        icon={require("../assets/images/search.svg")}
-        clearIcon={require("../assets/images/close.svg")}
-        style={styles.searchBar}
+        icon={SearchIcon}
+        clearIcon={CloseIcon}
+        // expands (flex: 1) only in row direction
+        style={[styles.searchBar, (props.direction ?? 'row') === 'row' && { flex: 1 }]}
         value={query}
         onChangeText={setQuery}
         onSubmitEditing={handleSearch}
@@ -60,8 +63,7 @@ const SearchBar = (props: {
 
 const styles = StyleSheet.create({
   searchBar: {
-    marginVertical: 5,
-    flex: 1
+    marginVertical: 5
   },
   searchButton: {
     backgroundColor: "#E0E0E0",

@@ -1,9 +1,13 @@
-import React, { useState, memo } from 'react';
-import { StyleSheet, View, Platform } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
+import ArrowDownIcon from "@/assets/images/arrow_down.svg";
+import ArrowUpIcon from "@/assets/images/arrow_up.svg";
+import AutoRenewIcon from "@/assets/images/auto_renew.svg";
+import InfoIcon from "@/assets/images/info.svg";
 import { ExternalLink } from '@/components/ExternalLink';
 import LoadingIndicator from '@/components/LoadingIndicator';
-import { Text, Button, Chip } from 'react-native-paper';
+import { ThemedText } from '@/components/ThemedText';
+import React, { memo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Button, Chip, Text } from 'react-native-paper';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 /**
@@ -15,11 +19,6 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
  * summary_error: Error fetching final webpage summary
  */
 export type ResultStatus = 'pending' | 'partial_loading' | 'partial_error' | 'summary_loading' | 'loaded' | 'summary_error';
-
-const arrowUpIcon = require("@/assets/images/arrow_up.svg");
-const arrowDownIcon = require("@/assets/images/arrow_down.svg");
-const autoRenewIcon = require("@/assets/images/auto_renew.svg");
-const infoIcon = require("@/assets/images/info.svg");
 
 export interface DetailedResult {
     id: string;
@@ -67,7 +66,7 @@ const SearchResultItem = memo((params: {
             <View style={styles.resultHeader}>
                 <ExternalLink style={styles.resultTitle} href={initialResult.url}>{initialResult.name}</ExternalLink>
                 {!isTopN && !detailedResult && ( // Show indicator only if not top N AND not yet processed
-                     <Chip icon={infoIcon} style={styles.indicatorChip} textStyle={styles.indicatorChipText}>Bing summary</Chip>
+                     <Chip icon={InfoIcon} style={styles.indicatorChip} textStyle={styles.indicatorChipText}>Bing summary</Chip>
                 )}
             </View>
             <ExternalLink style={styles.resultUrl} href={initialResult.url}>{initialResult.url}</ExternalLink>
@@ -107,7 +106,7 @@ const SearchResultItem = memo((params: {
                                 onPress={handleExpandClick}
                                 style={styles.actionButton}
                                 labelStyle={styles.actionButtonLabel}
-                                icon={isExpanded ? arrowUpIcon : arrowDownIcon}
+                                icon={isExpanded ? ArrowUpIcon : ArrowDownIcon}
                             >
                                 {isExpanded ? 'Show Less' : 'Show More'}
                             </Button>
@@ -141,7 +140,7 @@ const SearchResultItem = memo((params: {
                                 onPress={handleGenerateClick}
                                 style={styles.actionButton}
                                 labelStyle={styles.actionButtonLabel}
-                                icon={autoRenewIcon}
+                                icon={AutoRenewIcon}
                             >
                                 Generate Summary
                             </Button>

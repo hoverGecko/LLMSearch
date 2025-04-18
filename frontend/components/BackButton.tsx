@@ -1,15 +1,15 @@
-import { Ionicons } from "@expo/vector-icons";
+import CloseIcon from '@/assets/images/close.svg';
 import { Href, useRouter } from "expo-router";
+import { StyleSheet } from "react-native";
 import { IconButton, useTheme } from "react-native-paper";
 import { Style } from "react-native-paper/lib/typescript/components/List/utils";
-import { StyleSheet } from "react-native";
 
 const BackButton = (props: { style?: Style, href?: Href }) => {
   const router = useRouter();
   const theme = useTheme();
   return (
     <IconButton
-      icon={require("../assets/images/close.svg")}
+      icon={CloseIcon}
       size={28}
       style={props.style ?? styles.closeButton}
       onPress={() => {props.href ? router.navigate(props.href) : router.back()}}

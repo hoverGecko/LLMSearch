@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, Platform, View, ScrollView, TextInput } from 'react-native';
-import { Button } from 'react-native-paper';
-import { Text } from 'react-native-paper';
-import ResultContainer from '@/components/ResultContainer';
+import SendIcon from '@/assets/images/send.svg';
 import LoadingIndicator from '@/components/LoadingIndicator';
-import { InitialResult, DetailedResult } from './SearchResultItem';
+import ResultContainer from '@/components/ResultContainer';
 import { useAuth } from '@/context/AuthContext';
-
-const sendIcon = require("../assets/images/send.svg");
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Button, Text } from 'react-native-paper';
+import { DetailedResult, InitialResult } from './SearchResultItem';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -257,7 +255,7 @@ const GeneralSummaryChat: React.FC<GeneralSummaryProps> = ({
                         <Button
                             onPress={handleChatSubmit}
                             disabled={isChatLoading || !userQuery.trim()}
-                            icon={sendIcon}
+                            icon={SendIcon}
                         >Send</Button>
                     </View>
                 </View>

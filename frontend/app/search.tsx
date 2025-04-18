@@ -1,3 +1,4 @@
+import SettingsIcon from '@/assets/images/settings.svg';
 import GeneralSummaryChat from '@/components/GeneralSummaryChat';
 import ResultContainer from '@/components/ResultContainer';
 import SearchBar from '@/components/SearchBar';
@@ -186,7 +187,7 @@ export default function SearchScreen() {
                     <ThemedText type='title' style={{fontSize: 20}}>LLMSearch</ThemedText>
                 </Link>
                 <IconButton
-                    icon={require("../assets/images/settings.svg")}
+                    icon={SettingsIcon}
                     size={24}
                     onPress={() => {router.navigate('/settings')}}
                 />
