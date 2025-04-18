@@ -175,8 +175,8 @@ const styles = StyleSheet.create({
         marginRight: 8, // Space between title and chip
     },
     indicatorChip: {
-        height: 24,
         alignItems: 'center',
+        paddingVertical: 0.5
     },
     indicatorChipText: {
         fontSize: 10, // Smaller text for the chip
