@@ -199,6 +199,7 @@ const GeneralSummaryChat: React.FC<GeneralSummaryProps> = ({
                         ref={chatScrollViewRef}
                         style={styles.chatHistory}
                         contentContainerStyle={styles.chatHistoryContent}
+                        nestedScrollEnabled={true}
                     >
                         {chatHistory
                             .filter(msg => msg.role !== 'system')
@@ -278,13 +279,12 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#eee',
         paddingTop: 10,
-        flex: 1,
         minHeight: 200,
         maxHeight: 400,
+        flex: 1
     },
     chatHistory: {
-        flex: 1,
-        marginBottom: 10,
+        marginBottom: 10
     },
     chatHistoryContent: {
         paddingBottom: 10,

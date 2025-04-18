@@ -9,36 +9,46 @@ import { IconButton } from 'react-native-paper';
 export default function HomeScreen() {
   const router = useRouter();
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.outerContainer}>
       <IconButton
         icon={SettingsIcon}
         size={28}
         style={styles.settingsButton}
         onPress={() => {router.navigate('/settings')}}
       />
-      <ThemedView style={styles.titleContainer}>
-        <Link href="/">
-          <ThemedText type="title">LLMSearch</ThemedText>
-        </Link>
+      <ThemedView style={styles.innerContainer}>
+        <ThemedView style={styles.titleContainer}>
+          <Link href="/">
+            <ThemedText type="title">LLMSearch</ThemedText>
+          </Link>
+        </ThemedView>
+        <SearchBar direction="column" />
       </ThemedView>
-      <SearchBar direction="column" />
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    // Keep existing styles, just add settings button style
+  outerContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     height: '100%',
-    position: 'relative', // Needed for absolute positioning of button
+    position: 'relative',
+    width: '100%'
+  },
+  innerContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    position: 'relative',
+    width: '80%'
   },
   settingsButton: {
     position: 'absolute',
-    top: 20, // Adjust as needed for status bar height
+    top: 20,
     right: 20,
-    padding: 5, // Add padding for easier touch
+    padding: 5,
+    zIndex: 1
   },
   searchBar: {
     alignItems: 'center',
