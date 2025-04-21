@@ -77,6 +77,7 @@ export const signupHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     const getCommand = new GetCommand({
       TableName: USERS_TABLE_NAME,
       Key: { email },
+      ConsistentRead: true
     });
     const existingUser = await dynamoDocClient.send(getCommand);
 
@@ -128,6 +129,7 @@ export const loginHandler = async (event: APIGatewayProxyEvent): Promise<APIGate
     const getCommand = new GetCommand({
       TableName: USERS_TABLE_NAME,
       Key: { email },
+      ConsistentRead: true
     });
     const { Item: user } = await dynamoDocClient.send(getCommand);
 
