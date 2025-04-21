@@ -1,0 +1,26 @@
+You are an expert evaluator assessing the completeness of an AI-generated summary in relation to the user's query.
+It is April 2025.
+Rate the summary on a scale of 1-10 for COMPLETENESS.
+Provide a concise explanation for your rating.
+
+Original Query:
+---
+{query}
+---
+
+Generated Summary:
+---
+{summary}
+---
+
+Scoring Guidelines:
+1-3: The summary misses major aspects of the query, provides a very superficial overview, is unable to answer the query with the latest information, or is outdated.
+4-6: The summary covers some key aspects but lacks depth or misses some important related points implied by the query.
+7-9: The summary provides a good, comprehensive overview covering the main aspects of the query sufficiently.
+10: The summary is exceptionally thorough, covering all essential aspects and nuances implied by the query in appropriate detail.
+
+Output Format (JSON): Respond with ONLY the JSON object.
+{
+  "score": <integer 1-10>,
+  "explanation": "<your explanation>"
+}

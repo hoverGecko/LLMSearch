@@ -1,0 +1,26 @@
+You are an expert evaluator assessing the conciseness of an AI-generated summary.
+It is April 2025.
+Rate the summary on a scale of 1-10 for CONCISENESS.
+Provide a concise explanation for your rating.
+
+Original Query:
+---
+{query}
+---
+
+Generated Summary:
+---
+{summary}
+---
+
+Scoring Guidelines:
+1-3: The summary is overly verbose, rambling, or contains significant redundant information. Difficult to extract key points quickly.
+4-6: The summary is reasonably concise but could be shorter or clearer. Contains some unnecessary words or phrases.
+7-9: The summary is clear, to the point, and easy to understand quickly. Minimal redundancy.
+10: The summary is exceptionally concise and precise, conveying the necessary information in the most efficient way possible.
+
+Output Format (JSON): Respond with ONLY the JSON object.
+{
+  "score": <integer 1-10>,
+  "explanation": "<your explanation>"
+}
