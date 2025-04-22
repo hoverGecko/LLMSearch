@@ -15,10 +15,11 @@ Then, run `npm run dev` to start the local development server.
 Under [frontend/](frontend/), run `npm run export`, which runs `npx expo export -p web`.
 The output directory is `frontend/dist`.
 #### Using hosting platform (e.g. Cloudflare Pages)
-Set root directory to [frontend/](frontend/) and output directory to dist (frontend/dist).
+Set root directory to [frontend/](frontend/) and output directory to [frontend/dist/](frontend/dist) (set in .gitignore).
 Set build command to `npm ci && npm run export`.
 ### Backend
-Run `sam deploy --guided` to deploy the AWS SAM app to AWS.
+Run `sam build` and then `sam deploy --guided` under [backend/](backend/) to deploy the AWS SAM app to AWS.
+If `sam deploy --guided` has been run before, you can run `npm run deploy` directly under [backend/main/](backend/main).
 
 ## Current Completed Progress ✅
 - Creating backend stub
@@ -28,7 +29,5 @@ Run `sam deploy --guided` to deploy the AWS SAM app to AWS.
 - Hosting frontend (on Cloudflare Pages)
 - General summary chatbot function
 - Recursive search (now with LLM-generated initial search queries and search suggestions)
-
-## Features to be implemented
-- Authorization (registration), search history
-- Evaluations of effectiveness done by LLM
+- Authentication (login and registration)
+- Evaluations of effectiveness done by LLM (In the evaluations branch)
