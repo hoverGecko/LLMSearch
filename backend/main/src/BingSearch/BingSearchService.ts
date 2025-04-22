@@ -1,5 +1,7 @@
+import { ErrorResponse, SearchResponse } from "./BingSearchResult";
+
 export default class BingSearchService {
-    constructor(private apiKey: string) {}
+    constructor(protected apiKey: string) {}
 
     search = async (query: string): Promise<SearchResponse | ErrorResponse> => {
         const searchUrl = `https://api.bing.microsoft.com/v7.0/search?q=${encodeURIComponent(query)}`;

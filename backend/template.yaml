@@ -15,6 +15,8 @@ Globals:
         DEEPSEEK_API_KEY: !Ref DeepseekApiKey
         OPEN_ROUTER_API_KEY: !Ref OpenRouterApiKey
         APP_ENVIRONMENT: !Ref EnvironmentType # Pass environment type to functions
+        GOOGLE_SEARCH_API_KEY: !Ref GoogleSearchApiKey
+        GOOGLE_SEARCH_ENGINE_ID: !Ref GoogleSearchEngineId
   Api:
     Cors:
       AllowOrigin: !If
@@ -27,19 +29,18 @@ Globals:
 Parameters:
   JwtSecret:
     Type: String
-    NoEcho: true
   BingApiKey:
     Type: String
-    NoEcho: true
   HyperbolicAiApiKey:
     Type: String
-    NoEcho: true
   DeepseekApiKey:
     Type: String
-    NoEcho: true
   OpenRouterApiKey:
     Type: String
-    NoEcho: true
+  GoogleSearchApiKey:
+    Type: String
+  GoogleSearchEngineId:
+    Type: String
   EnvironmentType:
     Type: String
     Description: The deployment environment (dev or prod)

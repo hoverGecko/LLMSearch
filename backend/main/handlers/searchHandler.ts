@@ -1,24 +1,26 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import BingSearchService from '../src/BingSearch/BingSearchService';
 import { createJsonResponse, handleError, verifyUserEmail } from './lambdaHandlerUtils';
 import OpenRouterCompletor from '../src/LLMPromptCompleter/OpenRouterCompletor';
 import { ChatCompletionMessageParam } from 'openai/resources';
+import { SearchResponse, WebPage } from '../src/BingSearch/BingSearchResult';
+import GoogleSearchService from '../src/BingSearch/GoogleSearchService';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     const query = event.queryStringParameters?.['q'];
     if (!query) {
         return createJsonResponse(400, { error: 'Missing search query string "q" e.g. "/search?q=apple".' });
     }
-    const { BING_API_KEY } = process.env;
-    if (!BING_API_KEY) {
-        console.error('Server configuration error: Missing BING_API_KEY.');
-        return createJsonResponse(500, { error: 'Server configuration error (Bing).' });
+    const { GOOGLE_SEARCH_API_KEY } = process.env;
+    if (!GOOGLE_SEARCH_API_KEY) {
+        console.error('Server configuration error: Missing GOOGLE_SEARCH_API_KEY.');
+        return createJsonResponse(500, { error: 'Server configuration error (Google).' });
     }
     if (!verifyUserEmail(event)) {
         return createJsonResponse(401, { error: 'Unknown user.' })
     }
 
-    const searchService = new BingSearchService(BING_API_KEY);
+    const searchService = new GoogleSearchService(GOOGLE_SEARCH_API_KEY);
+
     const completor = new OpenRouterCompletor(['google/gemini-2.0-flash-001', 'openai/gpt-4o-mini']);
 
     try {
@@ -80,14 +82,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         console.log(`Total unique web pages found: ${deduplicatedWebPages.length}`);
 
         if (deduplicatedWebPages.length === 0) {
-            // If no results after aggregation, return an empty list within the expected structure
-             const emptySearchResult: Partial<SearchResponse> = {
-                 _type: "SearchResponse",
-                 webPages: { value: [], id: "", someResultsRemoved: false, totalEstimatedMatches: 0, webSearchUrl: "" },
-                 queryContext: { originalQuery: query, adultIntent: false, askUserForLocation: false },
-                 rankingResponse: { mainline: { items: [] }, pole: { items: [] }, sidebar: { items: [] } }
-             };
-            return createJsonResponse(200, { searchResult: emptySearchResult });
+            // If no results after aggregation, return error that no results are found
+            console.warn(`No search resulst found for query ${query}. Check search API usage.`)
+            return createJsonResponse(400, { error: 'No search results found.' });
         }
 
         // Default to unranked if LLM fails or is disabled

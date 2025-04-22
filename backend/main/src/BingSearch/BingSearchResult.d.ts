@@ -1,22 +1,22 @@
 // https://learn.microsoft.com/en-us/bing/search-apis/bing-web-search/reference/response-objects#searchresponse
 
 // Basic Types
-type UnsignedShort = number; // Assuming this will be a non-negative integer
+export type UnsignedShort = number; // Assuming this will be a non-negative integer
 
 // Attribution
-interface Attribution {
+export interface Attribution {
     providerDisplayName: string;
     seeMoreUrl: string;
 }
 
 // Computation
-interface Computation {
+export interface Computation {
     expression: string;
     value: string;
 }
 
 // Error
-interface Error {
+export interface Error {
     code: string;
     message: string;
     moreDetails: string;
@@ -26,18 +26,18 @@ interface Error {
 }
 
 // ErrorResponse
-interface ErrorResponse {
+export interface ErrorResponse {
     _type: "ErrorResponse";
     errors: Error[];
 }
 
 // Identifiable
-interface Identifiable {
+export interface Identifiable {
     id: string;
 }
 
 // Image
-interface Image {
+export interface Image {
     height: UnsignedShort;
     hostPageUrl: string;
     name?: string;
@@ -47,13 +47,13 @@ interface Image {
 }
 
 // License
-interface License {
+export interface License {
     name: string;
     url: string;
 }
 
 // LicenseAttribution
-interface LicenseAttribution {
+export interface LicenseAttribution {
     _type: "LicenseAttribution";
     license: License;
     licenseNotice: string;
@@ -62,7 +62,7 @@ interface LicenseAttribution {
 }
 
 // LinkAttribution
-interface LinkAttribution {
+export interface LinkAttribution {
     _type: "LinkAttribution";
     mustBeCloseToContent: boolean;
     targetPropertyName: string;
@@ -71,7 +71,7 @@ interface LinkAttribution {
 }
 
 // Malware
-interface Malware {
+export interface Malware {
     beSafeRxUrl: string;
     malwareWarningType: string;
     warningExplanationUrl: string;
@@ -79,7 +79,7 @@ interface Malware {
 }
 
 // MediaAttribution
-interface MediaAttribution {
+export interface MediaAttribution {
     _type: "MediaAttribution";
     mustBeCloseToContent: boolean;
     targetPropertyName: string;
@@ -87,26 +87,26 @@ interface MediaAttribution {
 }
 
 // MetaTag
-interface MetaTag {
+export interface MetaTag {
     content: string;
     name: string;
 }
 
 // Organization
-interface Organization {
+export interface Organization {
     name: string;
     url: string;
 }
 
 // Query
-interface Query {
+export interface Query {
     displayText: string;
     text: string;
     webSearchUrl: string;
 }
 
 // QueryContext
-interface QueryContext {
+export interface QueryContext {
     adultIntent: boolean;
     alterationOverrideQuery?: string;
     alteredQuery?: string;
@@ -115,32 +115,32 @@ interface QueryContext {
 }
 
 // RankingGroup
-interface RankingGroup {
+export interface RankingGroup {
     items: RankingItem[];
 }
 
 // RankingItem
-interface RankingItem {
+export interface RankingItem {
     answerType: string;
     resultIndex?: number;
     value: Identifiable;
 }
 
 // RankingResponse
-interface RankingResponse {
+export interface RankingResponse {
     mainline: RankingGroup;
     pole: RankingGroup;
     sidebar: RankingGroup;
 }
 
 // RelatedSearchAnswer
-interface RelatedSearchAnswer {
+export interface RelatedSearchAnswer {
     id: string;
     value: Query[];
 }
 
 // SearchResponse
-interface SearchResponse {
+export interface SearchResponse {
     _type: "SearchResponse";
     computation?: Computation;
     entities?: EntityAnswer;
@@ -158,13 +158,13 @@ interface SearchResponse {
 }
 
 // SpellSuggestions
-interface SpellSuggestions {
+export interface SpellSuggestions {
     id: string;
     value: Query[];
 }
 
 // TimeZone
-interface TimeZone {
+export interface TimeZone {
     date: string;
     description: string;
     otherCityTimes: TimeZoneInformation[];
@@ -175,14 +175,14 @@ interface TimeZone {
 }
 
 // TimeZoneDifference
-interface TimeZoneDifference {
+export interface TimeZoneDifference {
     location1: TimeZoneInformation;
     location2: TimeZoneInformation;
     text: string;
 }
 
 // TimeZoneInformation
-interface TimeZoneInformation {
+export interface TimeZoneInformation {
     location: string;
     time: string;
     timeZoneName: string;
@@ -190,7 +190,7 @@ interface TimeZoneInformation {
 }
 
 // TranslationAnswer
-interface TranslationAnswer {
+export interface TranslationAnswer {
     attributions: Attribution[];
     contractualRules?: object[];
     id: string;
@@ -201,7 +201,7 @@ interface TranslationAnswer {
 }
 
 // WebAnswer
-interface WebAnswer {
+export interface WebAnswer {
     id: string;
     someResultsRemoved: boolean;
     totalEstimatedMatches: number;
@@ -210,7 +210,7 @@ interface WebAnswer {
 }
 
 // WebPage
-interface WebPage {
+export interface WebPage {
     about?: object[];
     dateLastCrawled: string;
     datePublished: string;
@@ -230,7 +230,7 @@ interface WebPage {
 }
 
 // TextAttribution
-interface TextAttribution {
+export interface TextAttribution {
     _type: "TextAttribution";
     text: string;
 }
